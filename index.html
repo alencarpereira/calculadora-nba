@@ -2,15 +2,18 @@
 <html lang="pt-BR">
 
 <head>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Calculadora NBA</title>
+
     <link rel="stylesheet" href="style.css">
+
     <style>
-        /* Pequenos ajustes de layout */
         .container {
             max-width: 900px;
-            margin: 0 auto;
+            margin: auto;
             padding: 20px;
             font-family: sans-serif;
         }
@@ -36,37 +39,36 @@
             gap: 5px;
         }
 
-        input[type="number"] {
-            padding: 5px;
+        input {
+            padding: 6px;
             border-radius: 4px;
             border: 1px solid #aaa;
+        }
+
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            background: #0077cc;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #005fa3;
         }
 
         .botoes {
             display: flex;
             gap: 10px;
             margin-bottom: 20px;
-            flex-wrap: wrap;
         }
 
-        button {
-            padding: 10px 15px;
-            border-radius: 5px;
-            border: none;
-            cursor: pointer;
-            background-color: #0077cc;
-            color: #fff;
-        }
-
-        button:hover {
-            background-color: #005fa3;
-        }
-
-        .resultado p,
-        .box p {
-            margin: 5px 0;
+        .resultado p {
+            margin: 4px 0;
         }
     </style>
+
 </head>
 
 <body>
@@ -75,125 +77,222 @@
 
         <h1>🏀 Calculadora NBA</h1>
 
-        <!-- ========================= -->
-        <!-- DADOS DO TIME A -->
-        <!-- ========================= -->
+        <!-- VALOR APOSTA -->
         <div class="box">
+
+            <label><b>💰 Valor Total da Aposta</b></label>
+            <input type="number" id="valorAposta" value="100" step="10">
+
+        </div>
+
+        <!-- TIME A -->
+        <div class="box">
+
             <h2>Time A</h2>
+
             <div class="grid-times">
+
                 <div class="inputs-coluna">
-                    <label>Pontos feitos últimos 5 jogos</label>
-                    <input type="number" class="pontosA" step="0.5" placeholder="0">
-                    <input type="number" class="pontosA" step="0.5" placeholder="0">
-                    <input type="number" class="pontosA" step="0.5" placeholder="0">
-                    <input type="number" class="pontosA" step="0.5" placeholder="0">
-                    <input type="number" class="pontosA" step="0.5" placeholder="0">
+
+                    <label>Pontos feitos últimos 5</label>
+
+                    <input type="number" class="pontosA">
+                    <input type="number" class="pontosA">
+                    <input type="number" class="pontosA">
+                    <input type="number" class="pontosA">
+                    <input type="number" class="pontosA">
+
                 </div>
+
                 <div class="inputs-coluna">
-                    <label>Pontos sofridos últimos 5 jogos</label>
-                    <input type="number" class="sofridosA" step="0.5" placeholder="0">
-                    <input type="number" class="sofridosA" step="0.5" placeholder="0">
-                    <input type="number" class="sofridosA" step="0.5" placeholder="0">
-                    <input type="number" class="sofridosA" step="0.5" placeholder="0">
-                    <input type="number" class="sofridosA" step="0.5" placeholder="0">
+
+                    <label>Pontos sofridos últimos 5</label>
+
+                    <input type="number" class="sofridosA">
+                    <input type="number" class="sofridosA">
+                    <input type="number" class="sofridosA">
+                    <input type="number" class="sofridosA">
+                    <input type="number" class="sofridosA">
+
                 </div>
+
             </div>
+
         </div>
 
-        <!-- ========================= -->
-        <!-- DADOS TIME B -->
-        <!-- ========================= -->
+        <!-- TIME B -->
         <div class="box">
+
             <h2>Time B</h2>
+
             <div class="grid-times">
+
                 <div class="inputs-coluna">
-                    <label>Pontos feitos últimos 5 jogos</label>
-                    <input type="number" class="pontosB" step="0.5" placeholder="0">
-                    <input type="number" class="pontosB" step="0.5" placeholder="0">
-                    <input type="number" class="pontosB" step="0.5" placeholder="0">
-                    <input type="number" class="pontosB" step="0.5" placeholder="0">
-                    <input type="number" class="pontosB" step="0.5" placeholder="0">
+
+                    <label>Pontos feitos últimos 5</label>
+
+                    <input type="number" class="pontosB">
+                    <input type="number" class="pontosB">
+                    <input type="number" class="pontosB">
+                    <input type="number" class="pontosB">
+                    <input type="number" class="pontosB">
+
                 </div>
+
                 <div class="inputs-coluna">
-                    <label>Pontos sofridos últimos 5 jogos</label>
-                    <input type="number" class="sofridosB" step="0.5" placeholder="0">
-                    <input type="number" class="sofridosB" step="0.5" placeholder="0">
-                    <input type="number" class="sofridosB" step="0.5" placeholder="0">
-                    <input type="number" class="sofridosB" step="0.5" placeholder="0">
-                    <input type="number" class="sofridosB" step="0.5" placeholder="0">
+
+                    <label>Pontos sofridos últimos 5</label>
+
+                    <input type="number" class="sofridosB">
+                    <input type="number" class="sofridosB">
+                    <input type="number" class="sofridosB">
+                    <input type="number" class="sofridosB">
+                    <input type="number" class="sofridosB">
+
                 </div>
+
             </div>
+
         </div>
 
-        <!-- ========================= -->
-        <!-- CONFRONTO DIRETO (H2H) -->
-        <!-- ========================= -->
+        <!-- H2H -->
         <div class="box">
-            <h2>Confronto Direto (H2H)</h2>
+
+            <h2>Confronto Direto</h2>
+
             <div class="grid-times">
+
                 <div class="inputs-coluna">
+
                     <label>Pontos Time A</label>
-                    <input type="number" class="h2hA" step="0.5" placeholder="0">
-                    <input type="number" class="h2hA" step="0.5" placeholder="0">
-                    <input type="number" class="h2hA" step="0.5" placeholder="0">
-                    <input type="number" class="h2hA" step="0.5" placeholder="0">
-                    <input type="number" class="h2hA" step="0.5" placeholder="0">
+
+                    <input type="number" class="h2hA">
+                    <input type="number" class="h2hA">
+                    <input type="number" class="h2hA">
+                    <input type="number" class="h2hA">
+                    <input type="number" class="h2hA">
+
                 </div>
+
                 <div class="inputs-coluna">
+
                     <label>Pontos Time B</label>
-                    <input type="number" class="h2hB" step="0.5" placeholder="0">
-                    <input type="number" class="h2hB" step="0.5" placeholder="0">
-                    <input type="number" class="h2hB" step="0.5" placeholder="0">
-                    <input type="number" class="h2hB" step="0.5" placeholder="0">
-                    <input type="number" class="h2hB" step="0.5" placeholder="0">
+
+                    <input type="number" class="h2hB">
+                    <input type="number" class="h2hB">
+                    <input type="number" class="h2hB">
+                    <input type="number" class="h2hB">
+                    <input type="number" class="h2hB">
+
                 </div>
+
             </div>
+
         </div>
 
-        <!-- ========================= -->
-        <!-- LINHAS DO MERCADO -->
-        <!-- ========================= -->
+        <!-- LINHAS MERCADO -->
         <div class="box">
+
             <h2>Linhas do Mercado</h2>
-            <label>Total de pontos (Over/Under)</label>
-            <input type="number" id="linhaTotal" step="0.5" placeholder="0">
+
+            <label>Total de pontos</label>
+            <input type="number" id="linhaTotal" step="0.5">
 
             <br><br>
 
             <label>Handicap Time A</label>
-            <input type="number" id="handicapA" step="0.5" placeholder="0">
+            <input type="number" id="handicapA" step="0.5">
 
             <label>Handicap Time B</label>
-            <input type="number" id="handicapB" step="0.5" placeholder="0">
+            <input type="number" id="handicapB" step="0.5">
+
+            <br><br>
+
+            <label>Odd Over</label>
+            <input type="number" id="oddOver" step="0.01">
+
+            <label>Odd Under</label>
+            <input type="number" id="oddUnder" step="0.01">
+
+            <br><br>
+
+            <label>Odd Spread A</label>
+            <input type="number" id="oddSpreadA" step="0.01">
+
+            <label>Odd Spread B</label>
+            <input type="number" id="oddSpreadB" step="0.01">
+
         </div>
 
-        <!-- ========================= -->
         <!-- BOTÕES -->
-        <!-- ========================= -->
         <div class="botoes">
+
             <button onclick="calcular()">Calcular</button>
+
             <button onclick="preencher()">Preencher Automático</button>
+
             <button onclick="limparCampos()">Limpar</button>
+
         </div>
 
-        <!-- ========================= -->
-        <!-- RESULTADO -->
-        <!-- ========================= -->
-        <div class="resultado">
-            <h2>Resultado do Modelo</h2>
-            <p>Pontos Esperados Time A: <span id="pontosA"></span></p>
-            <p>Pontos Esperados Time B: <span id="pontosB"></span></p>
-            <p>Total Esperado: <span id="total"></span></p>
-            <p>Diferença/Spread Esperado: <span id="spread"></span></p>
-        </div>
-
-        <!-- ========================= -->
-        <!-- RECOMENDAÇÃO DE APOSTA -->
-        <!-- ========================= -->
+        <!-- RESULTADOS -->
         <div class="box">
-            <h2>Recomendação de Aposta</h2>
-            <p id="recomendacaoTotal">Total: -</p>
-            <p id="recomendacaoSpread">Handicap: -</p>
+
+            <h2>Resultado do Modelo</h2>
+
+            <p>Pontos Esperados A: <span id="pontosA"></span></p>
+            <p>Pontos Esperados B: <span id="pontosB"></span></p>
+
+            <p>Total Esperado: <span id="total"></span></p>
+            <p>Spread Esperado: <span id="spread"></span></p>
+            <p>Linha Justa Spread: <span id="linhaJustaSpread">-</span></p>
+
+        </div>
+
+        <!-- PROBABILIDADES -->
+        <div class="box">
+
+            <h2>Probabilidades do Modelo</h2>
+
+            <p>Vitória A: <span id="probVitoriaA"></span></p>
+            <p>Vitória B: <span id="probVitoriaB"></span></p>
+
+            <br>
+
+            <p>Over: <span id="probOver"></span></p>
+            <p>Under: <span id="probUnder"></span></p>
+
+            <br>
+
+            <p>Spread A: <span id="probSpreadA"></span></p>
+            <p>Spread B: <span id="probSpreadB"></span></p>
+
+        </div>
+
+        <!-- RECOMENDAÇÃO -->
+        <div class="box">
+
+            <h2>Recomendação do Modelo</h2>
+
+            <p>Aposta Principal: <span id="apostaPrincipal"></span></p>
+
+            <p>Cobertura: <span id="cobertura"></span></p>
+
+            <p>Confiança: <span id="confianca"></span></p>
+
+        </div>
+
+        <!-- HEDGE -->
+        <div class="box">
+
+            <h2>Divisão da Aposta (Hedge)</h2>
+
+            <p>🎯 Stake Principal: <span id="principalStake"></span></p>
+
+            <p>🛡️ Stake Proteção: <span id="protecaoStake"></span></p>
+
+            <p>💰 Lucro Estimado: <span id="lucroEstimado"></span></p>
+
         </div>
 
     </div>

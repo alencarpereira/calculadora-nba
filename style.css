@@ -56,7 +56,7 @@ GRID TIMES
 }
 
 /* =========================
-COLUNAS DE INPUT
+COLUNAS INPUT
 ========================= */
 
 .inputs-coluna {
@@ -78,7 +78,7 @@ label {
 }
 
 /* =========================
-INPUTS NUMÉRICOS
+INPUTS
 ========================= */
 
 input {
@@ -93,11 +93,16 @@ input {
 }
 
 /* =========================
-LINHAS DO MERCADO
+INPUTS MERCADO
 ========================= */
 
 #linhaTotal,
-#linhaSpread {
+#handicapA,
+#handicapB,
+#oddOver,
+#oddUnder,
+#oddSpreadA,
+#oddSpreadB {
     width: 120px;
     height: 32px;
     margin-bottom: 10px;
@@ -147,6 +152,40 @@ RESULTADOS
 span {
     font-weight: bold;
     color: #22c55e;
+}
+
+/* =========================
+PROBABILIDADES
+========================= */
+
+.probabilidades p {
+    font-size: 17px;
+    margin: 6px 0;
+}
+
+/* =========================
+APOSTA PRINCIPAL
+========================= */
+
+#apostaPrincipal {
+    font-size: 20px;
+    color: #22c55e;
+}
+
+/* =========================
+COBERTURA
+========================= */
+
+#cobertura {
+    color: #facc15;
+}
+
+/* =========================
+CONFIANÇA
+========================= */
+
+#confianca {
+    color: #38bdf8;
 }
 
 /* =========================
