@@ -134,3 +134,11 @@
         filter: brightness(1.2);
         transform: scale(1.05);
     }
+
+    #corpoTabela td {
+        padding: 10px 5px;
+        font-size: 0.9em;
+        /* Diminui levemente a fonte nas células para caber tudo */
+        white-space: nowrap;
+        /* Impede que o texto quebre linha e desalinhe a tabela */
+    }
