@@ -383,11 +383,14 @@ function validarPlacar(index) {
     const totalGols = gC + gF;
     const aposta = jogo.principal;
 
+    // Substitua o bloco de IFs por este:
     if (aposta === "Over 2.5" && totalGols > 2.5) deuGreen = true;
+    else if (aposta === "Under 2.5" && totalGols < 2.5) deuGreen = true; // ADICIONE ESTA LINHA
     else if (aposta === "BTTS" && gC > 0 && gF > 0) deuGreen = true;
     else if (aposta === "Casa" && gC > gF) deuGreen = true;
     else if (aposta === "Empate" && gC === gF) deuGreen = true;
     else if (aposta === "Fora" && gF > gC) deuGreen = true;
+
 
     let valorApostado = bancaBase * (Number(jogo.stake) / 100);
 
