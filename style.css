@@ -1,206 +1,136 @@
-/* =========================
-ESTILO GERAL
-========================= */
+    :root {
+        --primary: #1a237e;
+        --accent: #00c853;
+        --warning: #ffd600;
+        --bg: #f4f7f6;
+    }
 
-body {
-    font-family: Arial, Helvetica, sans-serif;
-    background: #0f172a;
-    margin: 0;
-    padding: 0;
-    color: white;
-}
-
-/* =========================
-CONTAINER
-========================= */
-
-.container {
-    max-width: 900px;
-    margin: auto;
-    padding: 20px;
-}
-
-/* =========================
-TITULOS
-========================= */
-
-h1 {
-    text-align: center;
-    margin-bottom: 30px;
-}
-
-h2 {
-    margin-top: 0;
-    margin-bottom: 15px;
-}
-
-/* =========================
-CAIXAS
-========================= */
-
-.box {
-    background: #1e293b;
-    padding: 20px;
-    margin-bottom: 20px;
-    border-radius: 8px;
-}
-
-/* =========================
-GRID TIMES
-========================= */
-
-.grid-times {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 40px;
-}
-
-/* =========================
-COLUNAS INPUT
-========================= */
-
-.inputs-coluna {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-}
-
-/* =========================
-LABELS
-========================= */
-
-label {
-    font-size: 14px;
-    color: #cbd5f5;
-    margin-bottom: 6px;
-    text-align: center;
-}
-
-/* =========================
-INPUTS
-========================= */
-
-input {
-    width: 65px;
-    height: 30px;
-    border: none;
-    border-radius: 6px;
-    text-align: center;
-    font-size: 14px;
-    background: #0f172a;
-    color: white;
-}
-
-/* =========================
-INPUTS MERCADO
-========================= */
-
-#linhaTotal,
-#handicapA,
-#handicapB,
-#oddOver,
-#oddUnder,
-#oddSpreadA,
-#oddSpreadB {
-    width: 120px;
-    height: 32px;
-    margin-bottom: 10px;
-}
-
-/* =========================
-BOTÕES
-========================= */
-
-.botoes {
-    display: flex;
-    gap: 10px;
-    margin-top: 10px;
-}
-
-button {
-    flex: 1;
-    padding: 12px;
-    font-size: 16px;
-    border: none;
-    border-radius: 8px;
-    background: #22c55e;
-    color: white;
-    cursor: pointer;
-}
-
-button:hover {
-    background: #16a34a;
-}
-
-/* =========================
-RESULTADOS
-========================= */
-
-.resultado {
-    background: #1e293b;
-    padding: 20px;
-    border-radius: 8px;
-    margin-top: 20px;
-}
-
-.resultado p {
-    font-size: 18px;
-    margin: 10px 0;
-}
-
-span {
-    font-weight: bold;
-    color: #22c55e;
-}
-
-/* =========================
-PROBABILIDADES
-========================= */
-
-.probabilidades p {
-    font-size: 17px;
-    margin: 6px 0;
-}
-
-/* =========================
-APOSTA PRINCIPAL
-========================= */
-
-#apostaPrincipal {
-    font-size: 20px;
-    color: #22c55e;
-}
-
-/* =========================
-COBERTURA
-========================= */
-
-#cobertura {
-    color: #facc15;
-}
-
-/* =========================
-CONFIANÇA
-========================= */
-
-#confianca {
-    color: #38bdf8;
-}
-
-/* =========================
-RESPONSIVO
-========================= */
-
-@media (max-width:600px) {
-
-    .grid-times {
-        grid-template-columns: 1fr;
-        gap: 20px;
+    body {
+        font-family: 'Segoe UI', sans-serif;
+        background: var(--bg);
+        color: #333;
+        margin: 0;
+        padding: 20px;
     }
 
     .container {
-        padding: 10px;
+        max-width: 1000px;
+        margin: auto;
     }
 
-}
+    .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+
+    .card {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+    }
+
+    h2,
+    h3 {
+        color: var(--primary);
+        margin-top: 0;
+    }
+
+    .input-group {
+        margin-bottom: 15px;
+    }
+
+    label {
+        display: block;
+        font-size: 0.9em;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+
+    input {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        box-sizing: border-box;
+    }
+
+    .btn-analisar {
+        width: 100%;
+        padding: 15px;
+        background: var(--primary);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 1.1em;
+        cursor: pointer;
+        transition: 0.3s;
+    }
+
+    .btn-analisar:hover {
+        background: #283593;
+    }
+
+    .badge-valor {
+        background: var(--accent);
+        color: white;
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-size: 0.8em;
+    }
+
+    .resultado-box {
+        display: none;
+        margin-top: 20px;
+        border-left: 5px solid var(--accent);
+    }
+
+    .flex-row {
+        display: flex;
+        gap: 10px;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+    }
+
+    th {
+        font-size: 0.8em;
+        text-align: center;
+        /* Mudei de left para center */
+        color: #666;
+        padding: 10px 5px;
+        border-bottom: 2px solid var(--primary);
+    }
+
+
+    /* Ajuste específico para os campos de placar na tabela */
+    input[type=number] {
+        appearance: textfield;
+        -moz-appearance: textfield;
+        /* Para Firefox */
+    }
+
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        /* Remove setas no Chrome/Edge */
+        margin: 0;
+    }
+
+    #corpoTabela input {
+        border: 1px solid #999;
+        background: white;
+        color: #333;
+        font-weight: bold;
+    }
+
+    /* Deixa os botões da tabela com aspecto de "clicáveis" */
+    #corpoTabela button:hover {
+        filter: brightness(1.2);
+        transform: scale(1.05);
+    }

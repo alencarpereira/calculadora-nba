@@ -1,310 +1,483 @@
-// ========================================
-// CALCULADORA NBA - MODELO PROBABILIDADE
-// ========================================
+function executarAnalise() {
+    const getVal = (id) => parseFloat(document.getElementById(id).value) || 0;
+    const mediaLiga = getVal('mediaLiga') || 2.5;
 
-// ===============================
-// PEGAR VALORES
-// ===============================
-function pegarValores(classe) {
+    const mercado = {
+        casa: getVal('oddCasa') || 0,
+        empate: getVal('oddEmpate') || 0,
+        fora: getVal('oddFora') || 0,
+        over: getVal('oddOver') || 0,
+        under: getVal('oddUnder') || 0,
+        btts: getVal('oddBTTS') || 0
+    };
+    const calcularMediaAjustada = (id) => {
+        const input = document.getElementById(id).value;
+        if (!input) return 0;
 
-    let elementos = document.querySelectorAll("." + classe)
-    let valores = []
+        const v = input.split(',').map(x => Number(x.trim()));
 
-    elementos.forEach(e => {
+        while (v.length < 5) v.push(0);
 
-        let v = Number(e.value)
+        return (v[0] + v[1] + v[2] + (v[3] * 1.5) + (v[4] * 1.5)) / 6;
+    };
 
-        if (!isNaN(v) && v > 0) {
-            valores.push(v)
+    const ataqueCasa = calcularMediaAjustada('golsMCasa');
+    const defesaCasa = calcularMediaAjustada('golsSCasa');
+
+    const ataqueFora = calcularMediaAjustada('golsMFora');
+    const defesaFora = calcularMediaAjustada('golsSFora');
+
+    const expGolsCasa =
+        (ataqueCasa + defesaFora + getVal('ataqueCasa') + (2 - getVal('defesaFora'))) / 4;
+
+    const expGolsFora =
+        (ataqueFora + defesaCasa + getVal('ataqueFora') + (2 - getVal('defesaCasa'))) / 4;
+
+    const fatorMotivacao = getVal('motivacao') || 1;
+
+    const lambdaCasa = Math.max(0.1, ((expGolsCasa + getVal('ataqueCasa')) / 2) * fatorMotivacao * (mediaLiga / 2.5));
+    const lambdaFora = Math.max(0.1, ((expGolsFora + getVal('ataqueFora')) / 2) * fatorMotivacao * (mediaLiga / 2.5));
+
+
+    const fatorial = (n) => {
+        if (n === 0) return 1;
+        let r = 1;
+        for (let i = 1; i <= n; i++) r *= i;
+        return r;
+    };
+
+    const poisson = (lambda, k) => (Math.exp(-lambda) * Math.pow(lambda, k)) / fatorial(k);
+
+    let pCasa = 0, pFora = 0, pEmpate = 0, pOver = 0, pBTTS = 0;
+    const rho = -0.05;
+    let somaTotalProb = 0;
+
+    for (let i = 0; i < 10; i++) {
+        for (let j = 0; j < 10; j++) {
+            let probPlacar = poisson(lambdaCasa, i) * poisson(lambdaFora, j);
+            if (i === 0 && j === 0) probPlacar *= (1 - (lambdaCasa * lambdaFora * rho));
+            else if (i === 0 && j === 1) probPlacar *= (1 + (lambdaCasa * rho));
+            else if (i === 1 && j === 0) probPlacar *= (1 + (lambdaFora * rho));
+            else if (i === 1 && j === 1) probPlacar *= (1 - rho);
+
+            somaTotalProb += probPlacar;
+            if (i > j) pCasa += probPlacar;
+            else if (i < j) pFora += probPlacar;
+            else pEmpate += probPlacar;
+            if ((i + j) > 2) pOver += probPlacar;
+            if (i > 0 && j > 0) pBTTS += probPlacar;
         }
-
-    })
-
-    return valores
-}
-
-// ===============================
-// MEDIA
-// ===============================
-function media(arr) {
-
-    if (arr.length === 0) return 0
-
-    return arr.reduce((a, b) => a + b, 0) / arr.length
-}
-
-// ===============================
-// ERF
-// ===============================
-function erf(x) {
-
-    let sign = (x >= 0) ? 1 : -1
-
-    x = Math.abs(x)
-
-    let a1 = 0.254829592
-    let a2 = -0.284496736
-    let a3 = 1.421413741
-    let a4 = -1.453152027
-    let a5 = 1.061405429
-    let p = 0.3275911
-
-    let t = 1 / (1 + p * x)
-
-    let y = 1 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x)
-
-    return sign * y
-}
-
-// ===============================
-// NORMAL CDF
-// ===============================
-function normalCDF(x, media, desvio) {
-
-    return (1 - erf((media - x) / (Math.sqrt(2) * desvio))) / 2
-
-}
-
-// ===============================
-// CALCULO PRINCIPAL
-// ===============================
-function calcular() {
-
-    // ===============================
-    // DADOS
-    // ===============================
-
-    const pontosA = pegarValores("pontosA")
-    const sofridosA = pegarValores("sofridosA")
-
-    const pontosB = pegarValores("pontosB")
-    const sofridosB = pegarValores("sofridosB")
-
-    const h2hA = pegarValores("h2hA")
-    const h2hB = pegarValores("h2hB")
-
-    // ===============================
-    // MÉDIAS
-    // ===============================
-
-    const ataqueA = media(pontosA)
-    const defesaA = media(sofridosA)
-
-    const ataqueB = media(pontosB)
-    const defesaB = media(sofridosB)
-
-    const h2hMediaA = media(h2hA)
-    const h2hMediaB = media(h2hB)
-
-    // ===============================
-    // PROJEÇÃO DE PONTOS
-    // ===============================
-
-    let esperadoA = (ataqueA * 0.6) + (defesaB * 0.4)
-    let esperadoB = (ataqueB * 0.6) + (defesaA * 0.4)
-
-    if (h2hMediaA > 0 && h2hMediaB > 0) {
-
-        esperadoA = (esperadoA * 0.75) + (h2hMediaA * 0.25)
-        esperadoB = (esperadoB * 0.75) + (h2hMediaB * 0.25)
-
     }
 
-    // ===============================
-    // TOTAL E SPREAD
-    // ===============================
+    pCasa /= somaTotalProb; pFora /= somaTotalProb; pEmpate /= somaTotalProb;
+    pOver /= somaTotalProb; pBTTS /= somaTotalProb;
 
-    let totalEsperado = esperadoA + esperadoB
-    let spreadEsperado = esperadoA - esperadoB
+    pCasa = Math.min(Math.max(pCasa, 0), 1);
+    pFora = Math.min(Math.max(pFora, 0), 1);
+    pEmpate = Math.min(Math.max(pEmpate, 0), 1);
+    pOver = Math.min(Math.max(pOver, 0), 1);
+    pBTTS = Math.min(Math.max(pBTTS, 0), 1);
 
-    // ===============================
-    // LINHA JUSTA DO SPREAD
-    // ===============================
 
-    let linhaJustaSpread = Math.round(spreadEsperado * 2) / 2
+    const calcularKelly = (prob, odd) => {
+        if (!odd || odd <= 1) return 0;
+        const b = odd - 1;
+        const kellyBruto = ((b * prob) - (1 - prob)) / b;
+        let stakeSugerida = kellyBruto * 0.25 * 100;
+        return kellyBruto > 0 ? parseFloat(Math.min(stakeSugerida, 5.0).toFixed(1)) : 0;
+    };
 
-    let textoLinhaJusta = ""
+    // --- AQUI ESTÁ A CORREÇÃO: CRIAR AS VARIÁVEIS ANTES ---
+    let evCasa = (pCasa * mercado.casa) - 1;
+    let evEmpate = (pEmpate * mercado.empate) - 1;
+    let evFora = (pFora * mercado.fora) - 1;
 
-    if (linhaJustaSpread > 0) {
+    let evBTTS = (pBTTS * mercado.btts) - 1;
+    let evOver = (pOver * mercado.over) - 1;
 
-        textoLinhaJusta = "Time A -" + linhaJustaSpread.toFixed(1)
+    let pUnder = 1 - pOver;
 
+    let evUnder = (pUnder * mercado.under) - 1;
+    const kUnder = calcularKelly(pUnder, mercado.under);
+
+    if (!mercado.casa) evCasa = -1;
+    if (!mercado.empate) evEmpate = -1;
+    if (!mercado.fora) evFora = -1;
+    if (!mercado.btts) evBTTS = -1;
+    if (!mercado.over) evOver = -1;
+
+    const kCasa = calcularKelly(pCasa, mercado.casa);
+    const kBTTS = calcularKelly(pBTTS, mercado.btts);
+    const kOver = calcularKelly(pOver, mercado.over);
+
+    exibirResultados(
+        pCasa * 100, pEmpate * 100, pFora * 100, pBTTS * 100, pOver * 100,
+        evCasa, evBTTS, evOver,
+        kCasa, kBTTS, kOver,
+        lambdaCasa + lambdaFora
+    );
+
+    // --- LÓGICA PARA DEFINIR APOSTA PRINCIPAL ---
+    // --- LÓGICA PARA DEFINIR APOSTA PRINCIPAL ---
+    let principalNome = "Casa";
+    let maiorEV = evCasa;
+    let oddFinal = mercado.casa;
+    let stakeFinal = kCasa;
+
+    if (evEmpate > maiorEV) {
+        maiorEV = evEmpate;
+        principalNome = "Empate";
+        oddFinal = mercado.empate;
+        stakeFinal = calcularKelly(pEmpate, mercado.empate);
+    }
+
+    if (evFora > maiorEV) {
+        maiorEV = evFora;
+        principalNome = "Fora";
+        oddFinal = mercado.fora;
+        stakeFinal = calcularKelly(pFora, mercado.fora);
+    }
+
+    if (evBTTS > maiorEV) {
+        maiorEV = evBTTS;
+        principalNome = "BTTS";
+        oddFinal = mercado.btts;
+        stakeFinal = kBTTS;
+    }
+
+    if (evOver > maiorEV) {
+        maiorEV = evOver;
+        principalNome = "Over 2.5";
+        oddFinal = mercado.over;
+        stakeFinal = kOver;
+    }
+
+    if (evUnder > maiorEV) {
+        maiorEV = evUnder;
+        principalNome = "Under 2.5";
+        oddFinal = mercado.under;
+        stakeFinal = kUnder;
+    }
+
+    // --- OBJETO QUE VAI PARA A TABELA ---
+    // Pega o nome digitado ou coloca a hora se estiver vazio
+    const nomeDoTime = document.getElementById('nomeJogo').value || "Jogo " + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+    const dadosParaSalvar = {
+        time: nomeDoTime,
+        ev: Number(maiorEV),
+        odd: Number(oddFinal),
+        stake: Number(stakeFinal),
+        pC: pCasa * 100,
+        pE: pEmpate * 100,
+        pF: pFora * 100,
+        pB: pBTTS * 100,
+        pO: pOver * 100,
+        expGols: lambdaCasa + lambdaFora,
+        principal: principalNome,
+        lucro: 0,
+        resultado: "Pendente"
+    };
+
+
+    // Inserindo o botão no painel de resultados
+    document.getElementById('painelResultado').innerHTML += `
+        <button onclick='salvarResultado(${JSON.stringify(dadosParaSalvar)})' 
+                style="width:100%; margin-top:15px; padding:12px; background:#1a237e; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">
+            💾 SALVAR NA TABELA DE RELATÓRIO
+        </button>
+    `;
+}
+
+function exibirResultados(pC, pE, pF, pBTTS, pOver, evC, evB, evO, kellyC, kellyB, kellyO, totalGols) {
+    const painel = document.getElementById('painelResultado');
+    document.getElementById('resultado').style.display = 'block';
+
+    const calcularFairOdd = (p) => p ? (100 / p).toFixed(2) : "-";
+
+    const fairC = calcularFairOdd(pC);
+    const fairE = calcularFairOdd(pE);
+    const fairF = calcularFairOdd(pF);
+    const fairB = calcularFairOdd(pBTTS);
+    const fairO = calcularFairOdd(pOver);
+
+    let html = `
+        <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-weight: bold; font-size: 0.9em;">
+            <span>🏠 Casa: ${pC.toFixed(1)}% <small style="color:#666">(${fairC})</small></span>
+            <span>🤝 Empate: ${pE.toFixed(1)}% <small style="color:#666">(${fairE})</small></span>
+            <span>🚀 Fora: ${pF.toFixed(1)}% <small style="color:#666">(${fairF})</small></span>
+        </div>
+        <div style="display: flex; justify-content: space-around; margin-bottom: 15px; font-size: 0.85em;">
+            <span style="color: #1565c0;">⚽ BTTS: <b>${pBTTS.toFixed(1)}%</b> <small>(${fairB})</small></span>
+            <span style="color: #e65100;">📈 Over 2.5: <b>${pOver.toFixed(1)}%</b> <small>(${fairO})</small></span>
+        </div>
+    `;
+
+    // Cards de Valor (Refatorados para serem limpos)
+    const criarCard = (titulo, ev, fair, stake, cor) => {
+        if (ev <= 0.02) return "";
+        return `<div style="background:${cor}15; padding:12px; border-radius:8px; border:2px solid ${cor}; margin-bottom: 10px;">
+        <b style="color:${cor}; text-transform:uppercase;">🔥 ${titulo} (EV: ${ev.toFixed(2)})</b><br>
+        Odd Justa: ${fair} | Stake: <b>${stake}%</b>
+    </div>`;
+    };
+
+    html += criarCard("Valor em Casa", evC, fairC, kellyC, "#2e7d32");
+    html += criarCard("Valor em BTTS", evB, fairB, kellyB, "#1565c0");
+    html += criarCard("Valor em Over 2.5", evO, fairO, kellyO, "#ef6c00");
+
+    if (evC <= 0.02 && evB <= 0.02 && evO <= 0.02) {
+        html += `<div style="background:#ffebee; padding:12px; border-radius:8px; text-align:center;">⚠️ Sem valor claro (Margem < 2%).</div>`;
+    }
+
+    html += `<p style="font-size: 0.8em; margin-top: 10px; color: #666; text-align:center;">Expectativa Total: <b>${totalGols.toFixed(2)} gols</b></p>`;
+    painel.innerHTML = html;
+}
+// 1. FUNÇÃO PARA SALVAR (Garante que os números entrem limpos)
+function salvarResultado(dados) {
+    let historico = JSON.parse(localStorage.getItem('meuHistoricoApostas')) || [];
+    // Adiciona campos iniciais de controle
+    dados.resultado = "Pendente";
+    dados.lucro = 0;
+
+    historico.unshift(dados);
+    localStorage.setItem('meuHistoricoApostas', JSON.stringify(historico));
+    renderizarTabela();
+    alert("Análise salva com sucesso!");
+}
+
+// 2. FUNÇÃO PARA CALCULAR GREEN/RED (Arruma a última coluna)
+function marcarResultado(index, tipo) {
+    let historico = JSON.parse(localStorage.getItem('meuHistoricoApostas')) || [];
+    let jogo = historico[index];
+    const bancaBase = 100; // Valor da sua banca para o cálculo
+
+    // Converte a stake para valor financeiro (ex: 1.8% de 1000 = 18.00)
+    let valorApostado = bancaBase * (Number(jogo.stake) / 100);
+
+    if (tipo === 'Green') {
+        // Lucro Líquido: (Odd - 1) * Valor Apostado
+        jogo.lucro = (Number(jogo.odd) - 1) * valorApostado;
+        jogo.resultado = "Green";
     } else {
-
-        textoLinhaJusta = "Time B -" + Math.abs(linhaJustaSpread).toFixed(1)
-
+        // Prejuízo: Valor Apostado negativo
+        jogo.lucro = -valorApostado;
+        jogo.resultado = "Red";
     }
 
-    // ===============================
-    // LINHAS DO MERCADO
-    // ===============================
+    localStorage.setItem('meuHistoricoApostas', JSON.stringify(historico));
+    renderizarTabela(); // Atualiza o R$ na tela na hora
+}
 
-    let linhaTotal = Number(document.getElementById("linhaTotal").value)
+// 3. FUNÇÃO PARA RENDERIZAR (O visual da tabela)
+function renderizarTabela() {
+    const historico = JSON.parse(localStorage.getItem('meuHistoricoApostas')) || [];
+    const corpo = document.getElementById('corpoTabela');
+    if (!corpo) return;
 
-    let handicapA = Number(document.getElementById("handicapA").value)
+    let somaLucro = 0;
 
-    let oddOver = Number(document.getElementById("oddOver").value)
-    let oddUnder = Number(document.getElementById("oddUnder").value)
+    corpo.innerHTML = historico.map((jogo, index) => {
+        const ev = Number(jogo.ev) || 0;
+        const odd = Number(jogo.odd) || 0;
+        const stake = Number(jogo.stake) || 0;
+        const lucro = Number(jogo.lucro) || 0;
+        somaLucro += lucro;
 
-    let oddSpreadA = Number(document.getElementById("oddSpreadA").value)
-    let oddSpreadB = Number(document.getElementById("oddSpreadB").value)
+        let bgLinha = "#fff9c4"; // Pendente (Amarelo)
+        if (jogo.resultado === "Green") bgLinha = "#e8f5e9";
+        if (jogo.resultado === "Red") bgLinha = "#ffebee";
 
-    let valorAposta = Number(document.getElementById("valorAposta").value)
+        return `
+            <tr style="background: ${bgLinha}; border-bottom: 1px solid #ddd; text-align: center;">
+                <td style="padding:8px; font-weight:bold; border: 1px solid #ddd;">${jogo.time}</td>
+                <td style="border: 1px solid #ddd;">${ev.toFixed(2)}</td>
+                <td style="border: 1px solid #ddd;">${odd.toFixed(2)}</td>
+                <td style="border: 1px solid #ddd; color: #1565c0; font-weight:bold;">${stake.toFixed(1)}%</td>
+                <td style="border: 1px solid #ddd;">${Number(jogo.pC).toFixed(1)}%</td>
+                <td style="border: 1px solid #ddd;">${Number(jogo.pE).toFixed(1)}%</td>
+                <td style="border: 1px solid #ddd;">${Number(jogo.pF).toFixed(1)}%</td>
+                <td style="border: 1px solid #ddd;">${Number(jogo.pB).toFixed(1)}%</td>
+                <td style="border: 1px solid #ddd;">${Number(jogo.pO).toFixed(1)}%</td>
+                <td style="border: 1px solid #ddd;">${Number(jogo.expGols).toFixed(2)}</td>
+                <td style="border: 1px solid #ddd; background: #fffde7;"><b>${jogo.principal}</b></td>
+            
+<td style="border: 1px solid #ddd; min-width: 140px; padding: 5px;">
+    <div style="display: flex; align-items: center; justify-content: center; gap: 5px;">
+        <input type="number" id="resC-${index}" 
+               style="width: 45px; height: 25px; text-align: center; border: 1px solid #999; border-radius: 4px; font-weight: bold; font-size: 1.1em; appearance: textfield;" 
+               value="${jogo.golsC !== undefined ? jogo.golsC : ''}">
+        
+        <span style="font-weight: bold; font-size: 1.1em;">×</span>
+        
+        <input type="number" id="resF-${index}" 
+               style="width: 45px; height: 25px; text-align: center; border: 1px solid #999; border-radius: 4px; font-weight: bold; font-size: 1.1em; appearance: textfield;" 
+               value="${jogo.golsF !== undefined ? jogo.golsF : ''}">
+        
+        <button onclick="validarPlacar(${index})" 
+                style="background: #1a237e; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s;">
+            OK
+        </button>
+    </div>
+</td>
 
 
-    // ===============================
-    // DESVIO DINÂMICO
-    // ===============================
+                <td style="border: 1px solid #ddd; font-weight:bold; color: ${lucro >= 0 ? '#2e7d32' : '#c62828'}">
+                    R$ ${lucro.toFixed(2)}
+                </td>
+                <td style="border: 1px solid #ddd;">
+                    <button onclick="excluirLinha(${index})" style="background:none; border:none; cursor:pointer; font-size:1.2em;">🗑️</button>
+                </td>
+            </tr>
+        `;
+    }).join('');
 
-    // total mais alto = jogo mais caótico
-    let desvioTotal = 14 + (totalEsperado * 0.02)
+    // Atualiza Painel de Saldo
+    const bancaInicial = 100;
+    const lucroTotalElem = document.getElementById('lucroTotal');
+    const saldoAtualElem = document.getElementById('saldoAtual');
 
-    // spreads grandes aumentam variância
-    let desvioSpread = 12 + (Math.abs(spreadEsperado) * 0.18)
+    if (lucroTotalElem) lucroTotalElem.innerHTML = `Lucro Total: ${somaLucro >= 0 ? '+' : ''} R$ ${somaLucro.toFixed(2)}`;
+    if (saldoAtualElem) saldoAtualElem.innerHTML = `Saldo Atual: R$ ${(bancaInicial + somaLucro).toFixed(2)}`;
+}
 
-    // ===============================
-    // PROBABILIDADES
-    // ===============================
+// 3. LIMPAR TUDO
+function limparHistorico() {
+    if (confirm("Deseja apagar todas as análises salvas?")) {
+        localStorage.removeItem('meuHistoricoApostas');
+        renderizarTabela();
+    }
+}
 
-    let probOver = 1 - normalCDF(linhaTotal, totalEsperado, desvioTotal)
-    let probUnder = 1 - probOver
+// Chamar ao carregar a página
+window.onload = renderizarTabela;
 
-    let diffSpread = spreadEsperado - handicapA
+function excluirLinha(index) {
+    if (confirm("Deseja excluir esta análise permanentemente?")) {
+        let historico = JSON.parse(localStorage.getItem('meuHistoricoApostas')) || [];
+        historico.splice(index, 1); // Remove 1 item na posição index
+        localStorage.setItem('meuHistoricoApostas', JSON.stringify(historico));
+        renderizarTabela(); // Atualiza a tela
+    }
+}
 
-    let probSpreadA = normalCDF(0, diffSpread, desvioSpread)
-    let probSpreadB = 1 - probSpreadA
+function validarPlacar(index) {
+    let historico = JSON.parse(localStorage.getItem('meuHistoricoApostas')) || [];
+    let jogo = historico[index];
+    const bancaBase = 100;
 
-    let probVitoriaA = 1 - normalCDF(0, spreadEsperado, desvioSpread)
-    let probVitoriaB = 1 - probVitoriaA
+    const gC = parseInt(document.getElementById(`resC-${index}`).value);
+    const gF = parseInt(document.getElementById(`resF-${index}`).value);
 
-    // ===============================
-    // EVENTOS
-    // ===============================
+    if (isNaN(gC) || isNaN(gF)) return alert("Preencha o placar!");
 
-    let eventos = [
+    // ATUALIZAÇÃO DO NOME COM O PLACAR
+    // Remove placares antigos se houver e coloca o novo
+    let nomeLimpo = jogo.time.split(" (")[0];
+    jogo.time = `${nomeLimpo} (${gC} x ${gF})`;
 
-        { nome: "OVER", prob: probOver, odd: oddOver },
-        { nome: "UNDER", prob: probUnder, odd: oddUnder },
+    jogo.golsC = gC;
+    jogo.golsF = gF;
 
-        { nome: "SPREAD A", prob: probSpreadA, odd: oddSpreadA },
-        { nome: "SPREAD B", prob: probSpreadB, odd: oddSpreadB },
+    let deuGreen = false;
+    const totalGols = gC + gF;
+    const aposta = jogo.principal;
 
-        { nome: "VITORIA A", prob: probVitoriaA, odd: 0 },
-        { nome: "VITORIA B", prob: probVitoriaB, odd: 0 }
+    if (aposta === "Over 2.5" && totalGols > 2.5) deuGreen = true;
+    else if (aposta === "BTTS" && gC > 0 && gF > 0) deuGreen = true;
+    else if (aposta === "Casa" && gC > gF) deuGreen = true;
+    else if (aposta === "Empate" && gC === gF) deuGreen = true;
+    else if (aposta === "Fora" && gF > gC) deuGreen = true;
 
-    ]
+    let valorApostado = bancaBase * (Number(jogo.stake) / 100);
 
-    // ===============================
-    // ORDENAR
-    // ===============================
-
-    eventos.sort((a, b) => b.prob - a.prob)
-
-    let principal = eventos[0]
-    let protecao = eventos[1]
-
-    // ===============================
-    // CONFIANÇA
-    // ===============================
-
-    let confianca = "Baixa"
-
-    if (principal.prob > 0.70) confianca = "Muito Alta"
-    else if (principal.prob > 0.60) confianca = "Alta"
-    else if (principal.prob > 0.55) confianca = "Média"
-
-    // ===============================
-    // HEDGE
-    // ===============================
-
-    let stakePrincipal = valorAposta * 0.7
-    let stakeProtecao = valorAposta * 0.3
-
-    let lucro = 0
-
-    if (principal.odd > 0) {
-
-        lucro = (stakePrincipal * principal.odd) - valorAposta
-
+    if (deuGreen) {
+        jogo.lucro = (Number(jogo.odd) - 1) * valorApostado;
+        jogo.resultado = "Green";
+    } else {
+        jogo.lucro = -valorApostado;
+        jogo.resultado = "Red";
     }
 
-    // ===============================
-    // RESULTADOS
-    // ===============================
-
-    document.getElementById("pontosA").innerText = esperadoA.toFixed(1)
-    document.getElementById("pontosB").innerText = esperadoB.toFixed(1)
-
-    document.getElementById("total").innerText = totalEsperado.toFixed(1)
-    document.getElementById("spread").innerText = spreadEsperado.toFixed(1)
-
-    document.getElementById("probOver").innerText = (probOver * 100).toFixed(1) + "%"
-    document.getElementById("probUnder").innerText = (probUnder * 100).toFixed(1) + "%"
-
-    document.getElementById("probSpreadA").innerText = (probSpreadA * 100).toFixed(1) + "%"
-    document.getElementById("probSpreadB").innerText = (probSpreadB * 100).toFixed(1) + "%"
-
-    document.getElementById("probVitoriaA").innerText = (probVitoriaA * 100).toFixed(1) + "%"
-    document.getElementById("probVitoriaB").innerText = (probVitoriaB * 100).toFixed(1) + "%"
-
-    // ===============================
-    // APOSTAS
-    // ===============================
-
-    document.getElementById("apostaPrincipal").innerText = principal.nome
-    document.getElementById("cobertura").innerText = protecao.nome
-    document.getElementById("confianca").innerText = confianca
-
-    document.getElementById("principalStake").innerText = "R$ " + stakePrincipal.toFixed(2)
-    document.getElementById("protecaoStake").innerText = "R$ " + stakeProtecao.toFixed(2)
-
-    document.getElementById("lucroEstimado").innerText = "R$ " + lucro.toFixed(2)
-    document.getElementById("linhaJustaSpread").innerText = textoLinhaJusta
-
+    localStorage.setItem('meuHistoricoApostas', JSON.stringify(historico));
+    renderizarTabela();
 }
 
-// ===============================
-// PREENCHER AUTOMÁTICO
-// ===============================
-function preencher() {
+function exportarCSV() {
+    const historico = JSON.parse(localStorage.getItem('meuHistoricoApostas')) || [];
+    if (historico.length === 0) return alert("Não há dados para exportar!");
 
-    let exemploA = [128, 120, 111, 122, 126]
-    let exemploAS = [149, 103, 136, 123, 134]
+    // Cabeçalho da planilha
+    let csv = "Analise do Time;Valor EV;Odd;Stake;Casa;Empate;Fora;BTTS;Over 2.5;Exp Gols;Aposta Principal;Resultado;Lucro (R$)\n";
 
-    let exemploB = [113, 130, 128, 119, 119]
-    let exemploBS = [114, 137, 126, 134, 127]
+    historico.forEach(j => {
+        // Organiza as colunas separadas por ponto e vírgula (padrão Excel Brasil)
+        csv += `${j.time};`;
+        csv += `${Number(j.ev).toFixed(2)};`;
+        csv += `${Number(j.odd).toFixed(2)};`;
+        csv += `${Number(j.stake).toFixed(1)}%;`;
+        csv += `${Number(j.pC).toFixed(1)}%;`;
+        csv += `${Number(j.pE).toFixed(1)}%;`;
+        csv += `${Number(j.pF).toFixed(1)}%;`;
+        csv += `${Number(j.pB).toFixed(1)}%;`;
+        csv += `${Number(j.pO).toFixed(1)}%;`;
+        csv += `${Number(j.expGols).toFixed(2)};`;
+        csv += `${j.principal};`;
+        csv += `${j.resultado};`;
+        csv += `${Number(j.lucro).toFixed(2)}\n`;
+    });
 
-    let exemploH2HA = [99, 142, 125, 115, 110]
-    let exemploH2HB = [123, 116, 120, 128, 119]
-
-    document.querySelectorAll(".pontosA").forEach((e, i) => e.value = exemploA[i])
-    document.querySelectorAll(".sofridosA").forEach((e, i) => e.value = exemploAS[i])
-
-    document.querySelectorAll(".pontosB").forEach((e, i) => e.value = exemploB[i])
-    document.querySelectorAll(".sofridosB").forEach((e, i) => e.value = exemploBS[i])
-
-    document.querySelectorAll(".h2hA").forEach((e, i) => e.value = exemploH2HA[i])
-    document.querySelectorAll(".h2hB").forEach((e, i) => e.value = exemploH2HB[i])
-
-    document.getElementById("linhaTotal").value = 237.5
-    document.getElementById("handicapA").value = -16.5
-    document.getElementById("handicapB").value = 16.5
-
-    document.getElementById("oddOver").value = 1.9
-    document.getElementById("oddUnder").value = 1.9
-
-    document.getElementById("oddSpreadA").value = 1.87
-    document.getElementById("oddSpreadB").value = 1.95
-
+    // Cria o arquivo para download
+    const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `relatorio_apostas_${new Date().toLocaleDateString().replace(/\//g, '-')}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
 
-// ===============================
-// LIMPAR
-// ===============================
+
+// Função para preencher com um cenário de exemplo (ex: Flamengo vs Palmeiras)
+function preencherExemplo() {
+    // 1. ODDS DO MERCADO
+    document.getElementById('oddCasa').value = "2.05";
+    document.getElementById('oddEmpate').value = "3.40";
+    document.getElementById('oddFora').value = "3.80";
+    document.getElementById('oddOver').value = "1.90";
+    document.getElementById('oddUnder').value = "1.90";
+    document.getElementById('oddBTTS').value = "1.72";
+
+    // 2. DADOS TIME CASA (IDs corrigidos conforme seu HTML)
+    document.getElementById('golsMCasa').value = "2,1,1,0,3";
+    document.getElementById('golsSCasa').value = "0,1,1,2,0";
+    document.getElementById('ataqueCasa').value = "1.8";
+    document.getElementById('defesaCasa').value = "1.2";
+
+    // 3. DADOS TIME FORA (IDs corrigidos conforme seu HTML)
+    document.getElementById('golsMFora').value = "1,1,2,0,1";
+    document.getElementById('golsSFora').value = "1,2,1,1,3";
+    document.getElementById('ataqueFora').value = "1.4";
+    document.getElementById('defesaFora').value = "1.6";
+
+    // 4. NOME DO JOGO
+    document.getElementById('nomeJogo').value = "Flamengo x Vasco";
+
+    console.log("Exemplo carregado com sucesso!");
+}
+
+
+// Função para limpar todos os campos
 function limparCampos() {
+    const inputs = document.querySelectorAll('input');
+    inputs.forEach(input => input.value = "");
 
-    document.querySelectorAll("input").forEach(e => e.value = "")
+    const selects = document.querySelectorAll('select');
+    selects.forEach(select => select.selectedIndex = 0);
 
-    document.querySelectorAll("span").forEach(e => e.innerText = "")
+    document.getElementById('resultado').style.display = 'none';
+    document.getElementById('painelResultado').innerHTML = "";
 
+    console.log("Formulário limpo!");
 }
