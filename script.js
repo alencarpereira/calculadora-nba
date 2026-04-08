@@ -364,6 +364,8 @@ function excluirLinha(index) {
 function validarPlacar(index) {
     let historico = JSON.parse(localStorage.getItem('meuHistoricoApostas')) || [];
     let jogo = historico[index];
+
+    if (!jogo) return alert("Erro: Jogo não encontrado!");
     const bancaBase = 100;
 
     const gC = parseInt(document.getElementById(`resC-${index}`).value);

@@ -180,17 +180,13 @@
                 </div>
             </div>
     </div>
-
-    <!-- Onde os resultados aparecem -->
-    <div id="painelResultado"></div>
-
     <!-- Onde a tabela de histórico vai aparecer -->
     <!-- Procure este bloco e verifique se o botão "Limpar" e a tabela estão assim -->
     <div
         style="margin-top: 40px; overflow-x: auto; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
         <h3 style="color: #1a237e; border-bottom: 2px solid #1a237e; padding-bottom: 5px;">📊 Relatório Geral de Apostas
         </h3>
-        <table id="tabelaHistorico"
+        <div style="overflow-x: auto;">
             style="width:100%; border-collapse: collapse; font-size: 0.7em; font-family: sans-serif;">
             <thead>
                 <tr style="background:hsl(208, 43%, 84%); color: white; text-transform: uppercase;">
@@ -213,7 +209,9 @@
             <tbody id="corpoTabela">
                 <!-- Linhas inseridas pelo JS -->
             </tbody>
-        </table>
+            </table>
+        </div>
+
         <button onclick="limparHistorico()"
             style="margin-top:15px; color:#d32f2f; background:none; border:1px solid #d32f2f; padding:5px 10px; border-radius:4px; cursor:pointer; font-weight:bold;">
             🧹 Limpar Todo o Histórico
