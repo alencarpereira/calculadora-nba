@@ -118,26 +118,37 @@ function executarAnalise() {
     );
 
     // --- LÓGICA PARA DEFINIR APOSTA PRINCIPAL ---
-    // --- LÓGICA PARA DEFINIR APOSTA PRINCIPAL ---
-    let principalNome = "Casa";
-    let maiorEV = evCasa;
-    let oddFinal = mercado.casa;
-    let stakeFinal = kCasa;
+    // --- LÓGICA PARA DEFINIR APOSTA PRINCIPAL (AJUSTADA COM TRAVA DE 30%) ---
+    let principalNome = "Aguardar";
+    let maiorEV = -1; // Começa em -1 para garantir que só pegue valores reais
+    let oddFinal = 0;
+    let stakeFinal = 0;
 
-    if (evEmpate > maiorEV) {
+    // 1. CASA (Sempre prioritário se tiver valor)
+    if (evCasa > maiorEV) {
+        maiorEV = evCasa;
+        principalNome = "Casa";
+        oddFinal = mercado.casa;
+        stakeFinal = kCasa;
+    }
+
+    // 2. EMPATE (Só sugere se Probabilidade > 30%)
+    if (pEmpate > 0.30 && evEmpate > maiorEV) {
         maiorEV = evEmpate;
         principalNome = "Empate";
         oddFinal = mercado.empate;
         stakeFinal = calcularKelly(pEmpate, mercado.empate);
     }
 
-    if (evFora > maiorEV) {
+    // 3. FORA (Só sugere se Probabilidade > 30%)
+    if (pFora > 0.30 && evFora > maiorEV) {
         maiorEV = evFora;
         principalNome = "Fora";
         oddFinal = mercado.fora;
         stakeFinal = calcularKelly(pFora, mercado.fora);
     }
 
+    // 4. BTTS
     if (evBTTS > maiorEV) {
         maiorEV = evBTTS;
         principalNome = "BTTS";
@@ -145,6 +156,7 @@ function executarAnalise() {
         stakeFinal = kBTTS;
     }
 
+    // 5. OVER 2.5
     if (evOver > maiorEV) {
         maiorEV = evOver;
         principalNome = "Over 2.5";
@@ -152,12 +164,20 @@ function executarAnalise() {
         stakeFinal = kOver;
     }
 
+    // 6. UNDER 2.5
     if (evUnder > maiorEV) {
         maiorEV = evUnder;
         principalNome = "Under 2.5";
         oddFinal = mercado.under;
         stakeFinal = kUnder;
     }
+
+    // Trava final: se o maior EV encontrado for negativo, não sugere nada
+    if (maiorEV <= 0) {
+        principalNome = "Sem Valor";
+        stakeFinal = 0;
+    }
+
 
     // --- OBJETO QUE VAI PARA A TABELA ---
     // Pega o nome digitado ou coloca a hora se estiver vazio
