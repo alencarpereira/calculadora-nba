@@ -14,7 +14,7 @@ function executarAnalise() {
         const input = document.getElementById(id).value;
         if (!input) return 0;
 
-        const v = input.split(',').map(x => Number(x.trim()));
+        const v = input.split(/[.,]/).map(x => Number(x.trim()));
 
         while (v.length < 5) v.push(0);
 
