@@ -132,28 +132,36 @@
         </div>
 
         <select id="selectLiga" onchange="ajustarMediaLiga()"
-            style="width: 100%; padding: 10px; border-radius: 5px; margin-bottom: 10px;">
+            style="width: 100%; padding: 10px; border-radius: 5px; margin-bottom: 10px; border: 1px solid #1a237e;">
+
             <option value="">-- Selecionar Liga --</option>
-            <!-- Nacionais -->
-            <optgroup label="Nacionais">
+
+            <!-- OPÇÃO GENÉRICA -->
+            <option value="2.65" style="font-weight: bold; background: #e3f2fd;">🌍 Geral / Outras Ligas (2.65)</option>
+
+            <optgroup label="Américas">
                 <option value="2.44">🇧🇷 Brasileirão Série A (2.44)</option>
                 <option value="2.19">🇧🇷 Brasileirão Série B (2.19)</option>
                 <option value="2.03">🇦🇷 Argentino (2.03)</option>
-                <option value="2.82">🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier League (2.82)</option>
-                <option value="3.22">🇩🇪 Bundesliga (3.22)</option>
-                <option value="2.65">🇪🇸 La Liga (2.65)</option>
-                <option value="2.60">🇮🇹 Serie A (2.60)</option>
-                <option value="2.96">🇫🇷 Ligue 1 (2.96)</option>
-            </optgroup>
-            <!-- Continentais -->
-            <optgroup label="Copas Continentais">
-                <option value="2.95">🇪🇺 Champions League (2.95)</option>
-                <option value="2.80">🇪🇺 Europa League (2.80)</option>
+                <option value="3.11">🇺🇸 MLS - EUA (3.11)</option>
                 <option value="2.40">🏆 Libertadores (2.40)</option>
                 <option value="2.39">🛡️ Sul-Americana (2.39)</option>
             </optgroup>
+
+            <optgroup label="Europa">
+                <option value="2.82">🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier League (2.82)</option>
+                <option value="3.22">🇩🇪 Bundesliga (3.22)</option>
+                <option value="2.98">🇳🇱 Eredivisie - Holanda (2.98)</option>
+                <option value="2.65">🇪🇸 La Liga (2.65)</option>
+                <option value="2.60">🇮🇹 Serie A (2.60)</option>
+                <option value="2.96">🇫🇷 Ligue 1 (2.96)</option>
+                <option value="2.95">🇪🇺 Champions League (2.95)</option>
+                <option value="2.80">🇪🇺 Europa League (2.80)</option>
+            </optgroup>
+
             <option value="custom">✏️ Outra (Manual)</option>
         </select>
+
 
         <!-- ADICIONE ESTE BLOCO AQUI -->
         <div class="card" style="margin-top: 10px;">
