@@ -462,6 +462,27 @@ function exportarCSV() {
     link.click();
     document.body.removeChild(link);
 }
+function ajustarMediaLiga() {
+    const select = document.getElementById('selectLiga');
+    const inputMedia = document.getElementById('mediaLiga');
+
+    // Se o usuário selecionou uma liga válida (que não seja a opção vazia ou manual)
+    if (select.value && select.value !== "custom") {
+        inputMedia.value = select.value;
+
+        // Pequeno efeito visual para mostrar que o valor mudou
+        inputMedia.style.transition = "0.3s";
+        inputMedia.style.backgroundColor = "#dcedc8"; // Verde claro
+        setTimeout(() => {
+            inputMedia.style.backgroundColor = "white";
+        }, 500);
+    } else if (select.value === "custom") {
+        inputMedia.value = ""; // Limpa para o usuário digitar
+        inputMedia.focus();
+    }
+}
+
+
 
 
 // Função para preencher com um cenário de exemplo (ex: Flamengo vs Palmeiras)

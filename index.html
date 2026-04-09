@@ -131,19 +131,38 @@
             </div>
         </div>
 
-        <div class="card">
-            <h3>⚙️ Ajustes do Modelo</h3>
+        <select id="selectLiga" onchange="ajustarMediaLiga()"
+            style="width: 100%; padding: 10px; border-radius: 5px; margin-bottom: 10px;">
+            <option value="">-- Selecionar Liga --</option>
+            <!-- Nacionais -->
+            <optgroup label="Nacionais">
+                <option value="2.44">🇧🇷 Brasileirão Série A (2.44)</option>
+                <option value="2.19">🇧🇷 Brasileirão Série B (2.19)</option>
+                <option value="2.03">🇦🇷 Argentino (2.03)</option>
+                <option value="2.82">🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier League (2.82)</option>
+                <option value="3.22">🇩🇪 Bundesliga (3.22)</option>
+                <option value="2.65">🇪🇸 La Liga (2.65)</option>
+                <option value="2.60">🇮🇹 Serie A (2.60)</option>
+                <option value="2.96">🇫🇷 Ligue 1 (2.96)</option>
+            </optgroup>
+            <!-- Continentais -->
+            <optgroup label="Copas Continentais">
+                <option value="2.95">🇪🇺 Champions League (2.95)</option>
+                <option value="2.80">🇪🇺 Europa League (2.80)</option>
+                <option value="2.40">🏆 Libertadores (2.40)</option>
+                <option value="2.39">🛡️ Sul-Americana (2.39)</option>
+            </optgroup>
+            <option value="custom">✏️ Outra (Manual)</option>
+        </select>
 
-            <div class="input-group">
-                <label>Média de gols da liga</label>
-                <input type="number" id="mediaLiga" step="0.1" min="1" max="5" value="2.5" placeholder="Ex: 2.6">
-            </div>
-
-            <small style="color:#666;">
-                Média de gols da competição. Exemplos:<br>
-                Brasileirão ≈ 2.4 | Premier League ≈ 2.8 | Bundesliga ≈ 3.1
-            </small>
+        <!-- ADICIONE ESTE BLOCO AQUI -->
+        <div class="card" style="margin-top: 10px;">
+            <label style="font-weight: bold;">Média de gols da liga (Calibragem):</label>
+            <input type="number" id="mediaLiga" step="0.01" min="1" max="5" value="2.5"
+                style="width: 100%; padding: 10px; margin-top: 5px; border-radius: 5px; border: 1px solid #ccc; background: #f9f9f9;">
+            <small style="color: #666;">Este valor é preenchido automaticamente ao selecionar a liga acima.</small>
         </div>
+
 
         <div class="card" style="margin-top: 15px;">
             <label style="font-weight: bold;">⚔️ Confronto (Times):</label>
@@ -151,34 +170,31 @@
                 style="width: 100%; padding: 10px; margin-top: 5px; border-radius: 5px; border: 1px solid #ccc;">
         </div>
 
-        <button class="btn-analisar" onclick="executarAnalise()" ...>
+        <button class="btn-analisar" onclick="executarAnalise()"
+            style="width:100%; padding:15px; background:#1a237e; color:white; border:none; border-radius:8px; font-size:1.1em; cursor:pointer;">
+            CALCULAR PROBABILIDADE & VALOR
+        </button>
+        <br>
+        <br>
 
-
-            <button class="btn-analisar" onclick="executarAnalise()"
-                style="width:100%; padding:15px; background:#1a237e; color:white; border:none; border-radius:8px; font-size:1.1em; cursor:pointer;">
-                CALCULAR PROBABILIDADE & VALOR
+        <div class="flex-row" style="margin-bottom: 15px;">
+            <button onclick="preencherExemplo()"
+                style="flex: 1; padding: 10px; background: #546e7a; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                🧪 Preencher Exemplo
             </button>
-            <br>
-            <br>
+            <button onclick="limparCampos()"
+                style="flex: 1; padding: 10px; background: #d32f2f; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                🧹 Limpar Tudo
+            </button>
+        </div>
 
-            <div class="flex-row" style="margin-bottom: 15px;">
-                <button onclick="preencherExemplo()"
-                    style="flex: 1; padding: 10px; background: #546e7a; color: white; border: none; border-radius: 8px; cursor: pointer;">
-                    🧪 Preencher Exemplo
-                </button>
-                <button onclick="limparCampos()"
-                    style="flex: 1; padding: 10px; background: #d32f2f; color: white; border: none; border-radius: 8px; cursor: pointer;">
-                    🧹 Limpar Tudo
-                </button>
+        <!-- RESULTADO DINÂMICO -->
+        <div id="resultado" class="card" style="display: none; border-left: 5px solid #00c853;">
+            <h3>📊 Diagnóstico Final</h3>
+            <div id="painelResultado">
+                <!-- Aqui o JS vai injetar os cálculos -->
             </div>
-
-            <!-- RESULTADO DINÂMICO -->
-            <div id="resultado" class="card" style="display: none; border-left: 5px solid #00c853;">
-                <h3>📊 Diagnóstico Final</h3>
-                <div id="painelResultado">
-                    <!-- Aqui o JS vai injetar os cálculos -->
-                </div>
-            </div>
+        </div>
     </div>
     <!-- Onde a tabela de histórico vai aparecer -->
     <!-- Procure este bloco e verifique se o botão "Limpar" e a tabela estão assim -->
