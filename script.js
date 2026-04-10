@@ -447,25 +447,34 @@ function exportarCSV() {
     link.click();
     document.body.removeChild(link);
 }
-
 function ajustarMediaLiga() {
+
     const select = document.getElementById('selectLiga');
     const inputMedia = document.getElementById('mediaLiga');
 
-    if (select.value && select.value !== "custom") {
+    if (select.value === "custom") {
+
+        inputMedia.value = "";
+        inputMedia.focus();
+        inputMedia.style.backgroundColor = "#ffffff";
+
+        return;
+    }
+
+    if (select.value) {
+
         inputMedia.value = select.value;
 
-        // Efeito de destaque para confirmar a troca
-        inputMedia.style.backgroundColor = "#fff9c4"; // Amarelo claro de destaque
+        inputMedia.style.backgroundColor = "#fff9c4";
         inputMedia.style.border = "2px solid #1a237e";
 
         setTimeout(() => {
             inputMedia.style.backgroundColor = "#f9f9f9";
             inputMedia.style.border = "1px solid #ccc";
         }, 600);
+
     }
 }
-
 
 
 
