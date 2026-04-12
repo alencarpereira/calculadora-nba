@@ -14,7 +14,6 @@ function executarAnalise() {
     const fatorTatico = parseFloat(document.getElementById('motivacao').value) || 1;
 
     // --- MATEMÁTICA PURA (Fiel aos seus inputs de Ataque e Defesa) ---
-    // Projeta os gols baseados na força ofensiva de um contra a fraqueza defensiva do outro
     const lambdaCasa = Math.max(0.1, (getVal('ataqueCasa') * getVal('defesaFora')) / mediaLiga * fatorTatico);
     const lambdaFora = Math.max(0.1, (getVal('ataqueFora') * getVal('defesaCasa')) / mediaLiga * fatorTatico);
     const expTotalGols = lambdaCasa + lambdaFora;
@@ -45,7 +44,6 @@ function executarAnalise() {
             else if (i < j) pFora += probPlacar;
             else pEmpate += probPlacar;
 
-            // Ajustes de confiança para evitar extremos
             if (i > 0 && j > 0) pBTTS += (probPlacar * 0.92);
             if ((i + j) > 2.5) pOver += (probPlacar * 0.95);
         }
@@ -53,7 +51,7 @@ function executarAnalise() {
 
     pCasa /= somaTotalProb; pFora /= somaTotalProb; pEmpate /= somaTotalProb;
     pOver /= somaTotalProb; pBTTS /= somaTotalProb;
-    const pUnder = 1 - pOver;
+    const pU = 1 - pOver;
 
     const calcularKelly = (prob, odd) => {
         if (!odd || odd <= 1) return 0;
@@ -68,44 +66,64 @@ function executarAnalise() {
     let evFora = mercado.fora > 0 ? (pFora * mercado.fora) - 1 : -1;
     let evBTTS = mercado.btts > 0 ? (pBTTS * mercado.btts) - 1 : -1;
     let evOver = mercado.over > 0 ? (pOver * mercado.over) - 1 : -1;
-    let evUnder = mercado.under > 0 ? (pUnder * mercado.under) - 1 : -1;
+    let evUnder = mercado.under > 0 ? (pU * mercado.under) - 1 : -1;
 
     const kCasa = calcularKelly(pCasa, mercado.casa);
     const kFora = calcularKelly(pFora, mercado.fora);
     const kBTTS = calcularKelly(pBTTS, mercado.btts);
     const kOver = calcularKelly(pOver, mercado.over);
-    const kUnder = calcularKelly(pUnder, mercado.under);
+    const kUnder = calcularKelly(pU, mercado.under);
 
-    // --- LÓGICA DE SELEÇÃO DA MELHOR APOSTA (Regra de Corte da Liga) ---
+    // --- VARIÁVEIS DE DECISÃO ---
     let maiorScore = -Infinity;
     let principalNome = "Sem Valor";
     let oddFinal = 0, stakeFinal = 0, maiorEVFinal = 0;
 
+    // --- FUNÇÃO DE ESCOLHA INTERNA ---
     const atualizarMelhor = (nome, ev, prob, odd, stake) => {
-        // Trava: Prob > 40% e EV Positivo
         if (prob < 0.40 || ev <= 0) return;
-
-        const evRealista = Math.min(ev, 0.20); // Teto de 20%
-        const score = (evRealista * 0.6) + (prob * 0.4);
+        const evFinal = Math.min(ev, 0.20);
+        const score = (evFinal * 0.3) + (prob * 0.7); // Prioriza segurança (prob)
 
         if (score > maiorScore) {
             maiorScore = score;
-            maiorEVFinal = evRealista;
+            maiorEVFinal = evFinal;
             principalNome = nome;
             oddFinal = odd;
             stakeFinal = stake;
         }
     };
 
-    // Aplica sua Regra de Corte pela Média da Liga
-    if (expTotalGols >= mediaLiga) {
-        atualizarMelhor("Over 2.5", evOver, pOver, mercado.over, kOver);
-        atualizarMelhor("BTTS", evBTTS, pBTTS, mercado.btts, kBTTS);
-    } else {
-        atualizarMelhor("Under 2.5", evUnder, pUnder, mercado.under, kUnder);
+    // --- HIERARQUIA DE DECISÃO ---
+    let temGolsDominante = (pOver >= 0.60 || pU >= 0.60 || pBTTS >= 0.60);
+
+    if (temGolsDominante) {
+        if (pOver >= 0.60) {
+            atualizarMelhor("Over 2.5", evOver, pOver, mercado.over, kOver);
+            if (pBTTS >= 0.60 && evBTTS > 0 && evBTTS < evOver) {
+                atualizarMelhor("BTTS", evBTTS, pBTTS, mercado.btts, kBTTS);
+            }
+        }
+        else if (pU >= 0.60) {
+            atualizarMelhor("Under 2.5", evUnder, pU, mercado.under, kUnder);
+        }
+        else if (pBTTS >= 0.60) {
+            atualizarMelhor("BTTS", evBTTS, pBTTS, mercado.btts, kBTTS);
+        }
     }
-    atualizarMelhor("Casa", evCasa, pCasa, mercado.casa, kCasa);
-    atualizarMelhor("Fora", evFora, pFora, mercado.fora, kFora);
+
+    if (principalNome === "Sem Valor" || !temGolsDominante) {
+        if (pCasa >= 0.40) atualizarMelhor("Casa", evCasa, pCasa, mercado.casa, kCasa);
+        if (pFora >= 0.40) atualizarMelhor("Fora", evFora, pFora, mercado.fora, kFora);
+    }
+
+    if (principalNome === "Sem Valor") {
+        atualizarMelhor("Casa", evCasa, pCasa, mercado.casa, kCasa);
+        atualizarMelhor("Fora", evFora, pFora, mercado.fora, kFora);
+        atualizarMelhor("Over 2.5", evOver, pOver, mercado.over, kOver);
+        atualizarMelhor("Under 2.5", evUnder, pU, mercado.under, kUnder);
+        atualizarMelhor("BTTS", evBTTS, pBTTS, mercado.btts, kBTTS);
+    }
 
     // --- EXIBIÇÃO ---
     exibirResultados(
@@ -126,7 +144,6 @@ function executarAnalise() {
         principal: principalNome
     };
 
-    // Limpeza de botões antigos e criação do novo
     const painel = document.getElementById('painelResultado');
     const botoes = painel.querySelectorAll('button');
     botoes.forEach(b => b.remove());
@@ -137,6 +154,7 @@ function executarAnalise() {
     btn.onclick = () => salvarResultado(dadosParaSalvar);
     painel.appendChild(btn);
 }
+
 
 // --- FUNÇÃO DE TRAVA RIGOROSA ---
 const filtrarEVDentroDasRegras = (prob, ev) => {
