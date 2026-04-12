@@ -82,8 +82,8 @@ function executarAnalise() {
     let oddFinal = 0, stakeFinal = 0, maiorEVFinal = 0;
 
     const atualizarMelhor = (nome, ev, prob, odd, stake) => {
-        // Trava: Prob > 50% e EV Positivo
-        if (prob < 0.50 || ev <= 0) return;
+        // Trava: Prob > 40% e EV Positivo
+        if (prob < 0.40 || ev <= 0) return;
 
         const evRealista = Math.min(ev, 0.20); // Teto de 20%
         const score = (evRealista * 0.6) + (prob * 0.4);
