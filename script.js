@@ -98,32 +98,26 @@ function executarAnalise() {
         lambdaCasa + lambdaFora
     );
 
-    // LÓGICA DE SELEÇÃO DA MELHOR APOSTA
+    // --- LÓGICA DE SELEÇÃO DA MELHOR APOSTA (SINCRONIZADA) ---
     let maiorScore = -Infinity;
     let principalNome = "Sem Valor";
     let oddFinal = 0;
     let stakeFinal = 0;
-    let maiorEV = 0;
+    let maiorEVFinal = 0;
 
     const atualizarMelhor = (nome, ev, prob, odd, stake) => {
-        // 1. TRAVA DE PROBABILIDADE (Já combinamos: tem que ser tendência > 50%)
-        if (prob < 0.50) return;
+        // Mesmas regras: prob > 50% e ev > 0
+        if (prob < 0.50 || ev <= 0) return;
 
-        // 2. FILTRO DE EV REALISTA (Maior que 0.02 para margem e menor que 0.20 para segurança)
-        // Se o EV for maior que 20%, nós "capamos" ele para 0.20 para não inflar a confiança.
-        let evRealista = ev;
-        if (ev > 0.20) {
-            evRealista = 0.20;
-        }
+        // Aplica o teto de 0.20
+        const evFinal = Math.min(ev, 0.20);
 
-        // Se o EV for menor ou igual a 0.02 (2%), ignoramos por ser margem de erro
-        if (evRealista <= 0.02) return;
-
-        const score = (evRealista * 0.6) + (prob * 0.4);
+        // O Score ajuda a escolher a aposta que equilibra melhor Valor e Chance de Green
+        const score = (evFinal * 0.6) + (prob * 0.4);
 
         if (score > maiorScore) {
             maiorScore = score;
-            maiorEV = evRealista; // Salva o EV travado
+            maiorEVFinal = evFinal;
             principalNome = nome;
             oddFinal = odd;
             stakeFinal = stake;
@@ -131,36 +125,47 @@ function executarAnalise() {
     };
 
 
+    // Agora incluímos o Fora e o Under na busca
+    const pUnder = 1 - pOver;
     atualizarMelhor("Casa", evCasa, pCasa, mercado.casa, kCasa);
     atualizarMelhor("Fora", evFora, pFora, mercado.fora, kFora);
-    atualizarMelhor("Empate", evEmpate, pEmpate, mercado.empate, kEmpate);
-    atualizarMelhor("Over 2.5", evOver, pOver, mercado.over, kOver);
     atualizarMelhor("BTTS", evBTTS, pBTTS, mercado.btts, kBTTS);
-    atualizarMelhor("Under 2.5", evUnder, (1 - pOver), mercado.under, kUnder);
+    atualizarMelhor("Over 2.5", evOver, pOver, mercado.over, kOver);
+    atualizarMelhor("Under 2.5", evUnder, pUnder, mercado.under, kUnder);
 
+    // DADOS PARA O RELATÓRIO
     const dadosParaSalvar = {
         time: document.getElementById('nomeJogo').value || "Jogo",
-        ev: maiorEV,
+        ev: maiorEVFinal,
         odd: oddFinal,
         stake: stakeFinal,
         pC: pCasa * 100, pE: pEmpate * 100, pF: pFora * 100, pB: pBTTS * 100, pO: pOver * 100,
         expGols: lambdaCasa + lambdaFora,
-        principal: principalNome
+        principal: principalNome // Aqui ele pegará exatamente o que aparecer no card
     };
 
-    // CRIAÇÃO DO BOTÃO SEM ERROS
+    // CHAMA EXIBIÇÃO
+    exibirResultados(
+        pCasa * 100, pEmpate * 100, pFora * 100, pBTTS * 100, pOver * 100,
+        evCasa, evBTTS, evOver, evFora, evUnder, // Passando todos os EVs
+        kCasa, kBTTS, kOver, kFora, kUnder,     // Passando todas as Stakes
+        lambdaCasa + lambdaFora
+    );
+
+    // CRIA O BOTÃO (Sincronizado com os dados acima)
     const btn = document.createElement('button');
     btn.innerHTML = "💾 SALVAR NA TABELA DE RELATÓRIO";
     btn.style = "width:100%; margin-top:15px; padding:12px; background:#1a237e; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;";
     btn.onclick = () => salvarResultado(dadosParaSalvar);
     document.getElementById('painelResultado').appendChild(btn);
+
 }
 // --- FUNÇÃO DE TRAVA RIGOROSA ---
 const filtrarEVDentroDasRegras = (prob, ev) => {
     // Se a chance for menor que 50%, descarta (Retorna null)
     if (prob < 50) return null;
     // Se o EV for negativo ou margem de erro, descarta
-    if (ev <= 0.02) return null;
+    if (ev <= 0) return null;
     // Se o EV for absurdo, trava em 20%
     return Math.min(ev, 0.20);
 };
@@ -296,7 +301,7 @@ function limparCampos() {
 window.onload = renderizarTabela;
 
 // Altere a primeira linha para ficar exatamente assim:
-function exibirResultados(pC, pE, pF, pBTTS, pOver, evC, evB, evO, evF, kellyC, kellyB, kellyO, kellyF, totalGols) {
+function exibirResultados(pC, pE, pF, pBTTS, pOver, evC, evB, evO, evF, kellyC, kellyB, kellyO, kellyF, kellyU, totalGols) {
 
     const painel = document.getElementById('painelResultado');
     document.getElementById('resultado').style.display = 'block';
@@ -335,20 +340,21 @@ function exibirResultados(pC, pE, pF, pBTTS, pOver, evC, evB, evO, evF, kellyC, 
         return Math.min(ev, 0.20);
     };
 
-    // 3. Aplique os filtros (Note que removi as chamadas duplicadas lá de baixo)
+    // No final da função exibirResultados, substitua a parte dos IFs de vC, vB... por esta:
     const vC = filtrarEVDentroDasRegras(pC, evC);
+    const vF = filtrarEVDentroDasRegras(pF, evF);
     const vB = filtrarEVDentroDasRegras(pBTTS, evB);
     const vO = filtrarEVDentroDasRegras(pOver, evO);
-    const vF = filtrarEVDentroDasRegras(pF, evF); // Ative se tiver evF
+    const vU = filtrarEVDentroDasRegras(100 - pOver, evU); // Under 2.5
 
-    if (vC) html += criarCard("Valor em Casa", vC, fairC, kellyC, "#2e7d32");
-    if (vB) html += criarCard("Valor em BTTS", vB, fairB, kellyB, "#1565c0");
-    if (vO) html += criarCard("Valor em Over 2.5", vO, fairO, kellyO, "#ef6c00");
-    if (vF) html += criarCard("Valor em Fora", vF, fairF, kellyF, "#c62828");
+    if (vC) html += criarCard("Casa", vC, fairC, kellyC, "#2e7d32");
+    if (vF) html += criarCard("Fora", vF, fairF, kellyF, "#c62828");
+    if (vB) html += criarCard("BTTS", vB, fairB, kellyB, "#1565c0");
+    if (vO) html += criarCard("Over 2.5", vO, fairO, kellyO, "#ef6c00");
+    if (vU) html += criarCard("Under 2.5", vU, calcularFairOdd(100 - pOver), kellyU, "#546e7a");
 
-
-    // 4. Mensagem de segurança
-    if (!vC && !vB && !vO) {
+    // A CORREÇÃO DO AVISO: Agora checa se NENHUM deles existe
+    if (!vC && !vF && !vB && !vO && !vU) {
         html += `<div style="background:#fff3e0; color:#e65100; padding:12px; border-radius:8px; text-align:center; border:1px solid #ffb74d;">
             ⚠️ Sem entradas de alta confiança (>50% prob e valor real).
         </div>`;
