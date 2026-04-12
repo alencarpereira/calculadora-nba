@@ -144,13 +144,14 @@ function executarAnalise() {
         principal: principalNome // Aqui ele pegará exatamente o que aparecer no card
     };
 
-    // CHAMA EXIBIÇÃO
+    // Localize esta linha e substitua:
     exibirResultados(
         pCasa * 100, pEmpate * 100, pFora * 100, pBTTS * 100, pOver * 100,
-        evCasa, evBTTS, evOver, evFora, evUnder, // Passando todos os EVs
-        kCasa, kBTTS, kOver, kFora, kUnder,     // Passando todas as Stakes
+        evCasa, evBTTS, evOver, evFora, evUnder, // EVs (incluindo evUnder como evU)
+        kCasa, kBTTS, kOver, kFora, kUnder,      // STAKEs (incluindo kUnder como kellyU)
         lambdaCasa + lambdaFora
     );
+
 
     // CRIA O BOTÃO (Sincronizado com os dados acima)
     const btn = document.createElement('button');
@@ -301,7 +302,8 @@ function limparCampos() {
 window.onload = renderizarTabela;
 
 // Altere a primeira linha para ficar exatamente assim:
-function exibirResultados(pC, pE, pF, pBTTS, pOver, evC, evB, evO, evF, kellyC, kellyB, kellyO, kellyF, kellyU, totalGols) {
+// Adicione evU e kellyU antes de totalGols
+function exibirResultados(pC, pE, pF, pBTTS, pOver, evC, evB, evO, evF, evU, kellyC, kellyB, kellyO, kellyF, kellyU, totalGols) {
 
     const painel = document.getElementById('painelResultado');
     document.getElementById('resultado').style.display = 'block';
