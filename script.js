@@ -11,27 +11,13 @@ function executarAnalise() {
         btts: getVal('oddBTTS') || 0
     };
 
-    const calcularMediaAjustada = (id) => {
-        const input = document.getElementById(id).value;
-        if (!input) return 0;
-        const v = input.split(/[.,]/).map(x => Number(x.trim()));
-        while (v.length < 5) v.push(0);
-        return (v[0] + v[1] + v[2] + (v[3] * 1.5) + (v[4] * 1.5)) / 6;
-    };
+    const fatorTatico = parseFloat(document.getElementById('motivacao').value) || 1;
 
-    const ataqueCasa = calcularMediaAjustada('golsMCasa');
-    const defesaCasa = calcularMediaAjustada('golsSCasa');
-    const ataqueFora = calcularMediaAjustada('golsMFora');
-    const defesaFora = calcularMediaAjustada('golsSFora');
-
-    const expGolsCasa = (ataqueCasa + defesaFora + getVal('ataqueCasa') + (2 - getVal('defesaFora'))) / 4;
-    const expGolsFora = (ataqueFora + defesaCasa + getVal('ataqueFora') + (2 - getVal('defesaCasa'))) / 4;
-
-    const fatorMotivacao = parseFloat(document.getElementById('motivacao').value) || 1;
-    // O fator 0.7 "puxa" os extremos para a média, evitando projeções de 4 ou 5 gols
-    const compressao = 0.7;
-    const lambdaCasa = Math.max(0.1, (((expGolsCasa + getVal('ataqueCasa')) / 2) * compressao + (mediaLiga / 2) * (1 - compressao)) * fatorMotivacao);
-    const lambdaFora = Math.max(0.1, (((expGolsFora + getVal('ataqueFora')) / 2) * compressao + (mediaLiga / 2) * (1 - compressao)) * fatorMotivacao);
+    // --- MATEMÁTICA PURA (Fiel aos seus inputs de Ataque e Defesa) ---
+    // Projeta os gols baseados na força ofensiva de um contra a fraqueza defensiva do outro
+    const lambdaCasa = Math.max(0.1, (getVal('ataqueCasa') * getVal('defesaFora')) / mediaLiga * fatorTatico);
+    const lambdaFora = Math.max(0.1, (getVal('ataqueFora') * getVal('defesaCasa')) / mediaLiga * fatorTatico);
+    const expTotalGols = lambdaCasa + lambdaFora;
 
     const fatorial = (n) => {
         if (n === 0) return 1;
@@ -58,15 +44,16 @@ function executarAnalise() {
             if (i > j) pCasa += probPlacar;
             else if (i < j) pFora += probPlacar;
             else pEmpate += probPlacar;
-            // Dentro do loop de i e j, aplique um redutor leve no BTTS
-            if (i > 0 && j > 0) pBTTS += (probPlacar * 0.9); // Redução de 10% na confiança do BTTS
-            if ((i + j) > 2) pOver += (probPlacar * 0.95); // Redução de 5% na confiança do Over 2.5
 
+            // Ajustes de confiança para evitar extremos
+            if (i > 0 && j > 0) pBTTS += (probPlacar * 0.92);
+            if ((i + j) > 2.5) pOver += (probPlacar * 0.95);
         }
     }
 
     pCasa /= somaTotalProb; pFora /= somaTotalProb; pEmpate /= somaTotalProb;
     pOver /= somaTotalProb; pBTTS /= somaTotalProb;
+    const pUnder = 1 - pOver;
 
     const calcularKelly = (prob, odd) => {
         if (!odd || odd <= 1) return 0;
@@ -78,90 +65,79 @@ function executarAnalise() {
 
     // --- CÁLCULO DE EV ---
     let evCasa = mercado.casa > 0 ? (pCasa * mercado.casa) - 1 : -1;
+    let evFora = mercado.fora > 0 ? (pFora * mercado.fora) - 1 : -1;
     let evBTTS = mercado.btts > 0 ? (pBTTS * mercado.btts) - 1 : -1;
     let evOver = mercado.over > 0 ? (pOver * mercado.over) - 1 : -1;
-    let evFora = mercado.fora > 0 ? (pFora * mercado.fora) - 1 : -1;
-    let evEmpate = mercado.empate > 0 ? (pEmpate * mercado.empate) - 1 : -1;
-    let evUnder = mercado.under > 0 ? ((1 - pOver) * mercado.under) - 1 : -1;
+    let evUnder = mercado.under > 0 ? (pUnder * mercado.under) - 1 : -1;
 
     const kCasa = calcularKelly(pCasa, mercado.casa);
+    const kFora = calcularKelly(pFora, mercado.fora);
     const kBTTS = calcularKelly(pBTTS, mercado.btts);
     const kOver = calcularKelly(pOver, mercado.over);
-    const kFora = calcularKelly(pFora, mercado.fora);
-    const kEmpate = calcularKelly(pEmpate, mercado.empate);
-    const kUnder = calcularKelly((1 - pOver), mercado.under);
+    const kUnder = calcularKelly(pUnder, mercado.under);
 
-    exibirResultados(
-        pCasa * 100, pEmpate * 100, pFora * 100, pBTTS * 100, pOver * 100,
-        evCasa, evBTTS, evOver, evFora, // Adicionado evFora aqui
-        kCasa, kBTTS, kOver, kFora,     // Adicionado kFora aqui
-        lambdaCasa + lambdaFora
-    );
-
-    // --- LÓGICA DE SELEÇÃO DA MELHOR APOSTA (SINCRONIZADA) ---
+    // --- LÓGICA DE SELEÇÃO DA MELHOR APOSTA (Regra de Corte da Liga) ---
     let maiorScore = -Infinity;
     let principalNome = "Sem Valor";
-    let oddFinal = 0;
-    let stakeFinal = 0;
-    let maiorEVFinal = 0;
+    let oddFinal = 0, stakeFinal = 0, maiorEVFinal = 0;
 
     const atualizarMelhor = (nome, ev, prob, odd, stake) => {
-        // Mesmas regras: prob > 50% e ev > 0
+        // Trava: Prob > 50% e EV Positivo
         if (prob < 0.50 || ev <= 0) return;
 
-        // Aplica o teto de 0.20
-        const evFinal = Math.min(ev, 0.20);
-
-        // O Score ajuda a escolher a aposta que equilibra melhor Valor e Chance de Green
-        const score = (evFinal * 0.6) + (prob * 0.4);
+        const evRealista = Math.min(ev, 0.20); // Teto de 20%
+        const score = (evRealista * 0.6) + (prob * 0.4);
 
         if (score > maiorScore) {
             maiorScore = score;
-            maiorEVFinal = evFinal;
+            maiorEVFinal = evRealista;
             principalNome = nome;
             oddFinal = odd;
             stakeFinal = stake;
         }
     };
 
-
-    // Agora incluímos o Fora e o Under na busca
-    const pUnder = 1 - pOver;
+    // Aplica sua Regra de Corte pela Média da Liga
+    if (expTotalGols >= mediaLiga) {
+        atualizarMelhor("Over 2.5", evOver, pOver, mercado.over, kOver);
+        atualizarMelhor("BTTS", evBTTS, pBTTS, mercado.btts, kBTTS);
+    } else {
+        atualizarMelhor("Under 2.5", evUnder, pUnder, mercado.under, kUnder);
+    }
     atualizarMelhor("Casa", evCasa, pCasa, mercado.casa, kCasa);
     atualizarMelhor("Fora", evFora, pFora, mercado.fora, kFora);
-    atualizarMelhor("BTTS", evBTTS, pBTTS, mercado.btts, kBTTS);
-    atualizarMelhor("Over 2.5", evOver, pOver, mercado.over, kOver);
-    atualizarMelhor("Under 2.5", evUnder, pUnder, mercado.under, kUnder);
 
-    // DADOS PARA O RELATÓRIO
+    // --- EXIBIÇÃO ---
+    exibirResultados(
+        pCasa * 100, pEmpate * 100, pFora * 100, pBTTS * 100, pOver * 100,
+        evCasa, evBTTS, evOver, evFora, evUnder,
+        kCasa, kBTTS, kOver, kFora, kUnder,
+        expTotalGols
+    );
+
+    // --- SALVAMENTO ---
     const dadosParaSalvar = {
         time: document.getElementById('nomeJogo').value || "Jogo",
         ev: maiorEVFinal,
         odd: oddFinal,
         stake: stakeFinal,
         pC: pCasa * 100, pE: pEmpate * 100, pF: pFora * 100, pB: pBTTS * 100, pO: pOver * 100,
-        expGols: lambdaCasa + lambdaFora,
-        principal: principalNome // Aqui ele pegará exatamente o que aparecer no card
+        expGols: expTotalGols,
+        principal: principalNome
     };
 
-    // Localize a linha da chamada e substitua por esta:
-    exibirResultados(
-        pCasa * 100, pEmpate * 100, pFora * 100, pBTTS * 100, pOver * 100, // 1-5
-        evCasa, evBTTS, evOver, evFora, evUnder,                         // 6-10
-        kCasa, kBTTS, kOver, kFora, kUnder,                             // 11-15
-        (lambdaCasa + lambdaFora)                                        // 16 (totalGols)
-    );
+    // Limpeza de botões antigos e criação do novo
+    const painel = document.getElementById('painelResultado');
+    const botoes = painel.querySelectorAll('button');
+    botoes.forEach(b => b.remove());
 
-
-
-    // CRIA O BOTÃO (Sincronizado com os dados acima)
     const btn = document.createElement('button');
     btn.innerHTML = "💾 SALVAR NA TABELA DE RELATÓRIO";
     btn.style = "width:100%; margin-top:15px; padding:12px; background:#1a237e; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;";
     btn.onclick = () => salvarResultado(dadosParaSalvar);
-    document.getElementById('painelResultado').appendChild(btn);
-
+    painel.appendChild(btn);
 }
+
 // --- FUNÇÃO DE TRAVA RIGOROSA ---
 const filtrarEVDentroDasRegras = (prob, ev) => {
     // Se a chance for menor que 50%, descarta (Retorna null)
