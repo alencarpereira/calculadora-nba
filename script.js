@@ -10,34 +10,28 @@ function executarAnalise() {
         under: getVal('oddUnder') || 0,
         btts: getVal('oddBTTS') || 0
     };
+
     const calcularMediaAjustada = (id) => {
         const input = document.getElementById(id).value;
         if (!input) return 0;
-
         const v = input.split(/[.,]/).map(x => Number(x.trim()));
-
         while (v.length < 5) v.push(0);
-
         return (v[0] + v[1] + v[2] + (v[3] * 1.5) + (v[4] * 1.5)) / 6;
     };
 
     const ataqueCasa = calcularMediaAjustada('golsMCasa');
     const defesaCasa = calcularMediaAjustada('golsSCasa');
-
     const ataqueFora = calcularMediaAjustada('golsMFora');
     const defesaFora = calcularMediaAjustada('golsSFora');
 
-    const expGolsCasa =
-        (ataqueCasa + defesaFora + getVal('ataqueCasa') + (2 - getVal('defesaFora'))) / 4;
+    const expGolsCasa = (ataqueCasa + defesaFora + getVal('ataqueCasa') + (2 - getVal('defesaFora'))) / 4;
+    const expGolsFora = (ataqueFora + defesaCasa + getVal('ataqueFora') + (2 - getVal('defesaCasa'))) / 4;
 
-    const expGolsFora =
-        (ataqueFora + defesaCasa + getVal('ataqueFora') + (2 - getVal('defesaCasa'))) / 4;
-
-    const fatorMotivacao = getVal('motivacao') || 1;
-
-    const lambdaCasa = Math.max(0.1, ((expGolsCasa + getVal('ataqueCasa')) / 2) * fatorMotivacao * (mediaLiga / 2.5));
-    const lambdaFora = Math.max(0.1, ((expGolsFora + getVal('ataqueFora')) / 2) * fatorMotivacao * (mediaLiga / 2.5));
-
+    const fatorMotivacao = parseFloat(document.getElementById('motivacao').value) || 1;
+    // O fator 0.7 "puxa" os extremos para a média, evitando projeções de 4 ou 5 gols
+    const compressao = 0.7;
+    const lambdaCasa = Math.max(0.1, (((expGolsCasa + getVal('ataqueCasa')) / 2) * compressao + (mediaLiga / 2) * (1 - compressao)) * fatorMotivacao);
+    const lambdaFora = Math.max(0.1, (((expGolsFora + getVal('ataqueFora')) / 2) * compressao + (mediaLiga / 2) * (1 - compressao)) * fatorMotivacao);
 
     const fatorial = (n) => {
         if (n === 0) return 1;
@@ -64,20 +58,15 @@ function executarAnalise() {
             if (i > j) pCasa += probPlacar;
             else if (i < j) pFora += probPlacar;
             else pEmpate += probPlacar;
-            if ((i + j) > 2) pOver += probPlacar;
-            if (i > 0 && j > 0) pBTTS += probPlacar;
+            // Dentro do loop de i e j, aplique um redutor leve no BTTS
+            if (i > 0 && j > 0) pBTTS += (probPlacar * 0.9); // Redução de 10% na confiança do BTTS
+            if ((i + j) > 2) pOver += (probPlacar * 0.95); // Redução de 5% na confiança do Over 2.5
+
         }
     }
 
     pCasa /= somaTotalProb; pFora /= somaTotalProb; pEmpate /= somaTotalProb;
     pOver /= somaTotalProb; pBTTS /= somaTotalProb;
-
-    pCasa = Math.min(Math.max(pCasa, 0), 1);
-    pFora = Math.min(Math.max(pFora, 0), 1);
-    pEmpate = Math.min(Math.max(pEmpate, 0), 1);
-    pOver = Math.min(Math.max(pOver, 0), 1);
-    pBTTS = Math.min(Math.max(pBTTS, 0), 1);
-
 
     const calcularKelly = (prob, odd) => {
         if (!odd || odd <= 1) return 0;
@@ -87,102 +76,233 @@ function executarAnalise() {
         return kellyBruto > 0 ? parseFloat(Math.min(stakeSugerida, 5.0).toFixed(1)) : 0;
     };
 
-    // --- AQUI ESTÁ A CORREÇÃO: CRIAR AS VARIÁVEIS ANTES ---
-    let evCasa = (pCasa * mercado.casa) - 1;
-    let evEmpate = (pEmpate * mercado.empate) - 1;
-    let evFora = (pFora * mercado.fora) - 1;
-
-    let evBTTS = (pBTTS * mercado.btts) - 1;
-    let evOver = (pOver * mercado.over) - 1;
-
-    let pUnder = 1 - pOver;
-
-    let evUnder = (pUnder * mercado.under) - 1;
-    const kUnder = calcularKelly(pUnder, mercado.under);
-
-    if (!mercado.casa) evCasa = -1;
-    if (!mercado.empate) evEmpate = -1;
-    if (!mercado.fora) evFora = -1;
-    if (!mercado.btts) evBTTS = -1;
-    if (!mercado.over) evOver = -1;
+    // --- CÁLCULO DE EV ---
+    let evCasa = mercado.casa > 0 ? (pCasa * mercado.casa) - 1 : -1;
+    let evBTTS = mercado.btts > 0 ? (pBTTS * mercado.btts) - 1 : -1;
+    let evOver = mercado.over > 0 ? (pOver * mercado.over) - 1 : -1;
+    let evFora = mercado.fora > 0 ? (pFora * mercado.fora) - 1 : -1;
+    let evEmpate = mercado.empate > 0 ? (pEmpate * mercado.empate) - 1 : -1;
+    let evUnder = mercado.under > 0 ? ((1 - pOver) * mercado.under) - 1 : -1;
 
     const kCasa = calcularKelly(pCasa, mercado.casa);
     const kBTTS = calcularKelly(pBTTS, mercado.btts);
     const kOver = calcularKelly(pOver, mercado.over);
+    const kFora = calcularKelly(pFora, mercado.fora);
+    const kEmpate = calcularKelly(pEmpate, mercado.empate);
+    const kUnder = calcularKelly((1 - pOver), mercado.under);
 
     exibirResultados(
         pCasa * 100, pEmpate * 100, pFora * 100, pBTTS * 100, pOver * 100,
-        evCasa, evBTTS, evOver,
-        kCasa, kBTTS, kOver,
+        evCasa, evBTTS, evOver, evFora, // Adicionado evFora aqui
+        kCasa, kBTTS, kOver, kFora,     // Adicionado kFora aqui
         lambdaCasa + lambdaFora
     );
-    const pesoEV = 0.6;
-    const pesoProb = 0.4;
 
-    const calcularScore = (ev, prob) => {
-        return (ev * pesoEV) + (prob * pesoProb);
-    };
-
+    // LÓGICA DE SELEÇÃO DA MELHOR APOSTA
     let maiorScore = -Infinity;
     let principalNome = "Sem Valor";
     let oddFinal = 0;
     let stakeFinal = 0;
+    let maiorEV = 0;
 
-    const atualizarSeMelhor = (nome, ev, prob, odd, stake) => {
-        if (!isFinite(ev) || !isFinite(prob)) return;
+    const atualizarMelhor = (nome, ev, prob, odd, stake) => {
+        // 1. TRAVA DE PROBABILIDADE (Já combinamos: tem que ser tendência > 50%)
+        if (prob < 0.50) return;
 
-        const score = calcularScore(ev, prob);
+        // 2. FILTRO DE EV REALISTA (Maior que 0.02 para margem e menor que 0.20 para segurança)
+        // Se o EV for maior que 20%, nós "capamos" ele para 0.20 para não inflar a confiança.
+        let evRealista = ev;
+        if (ev > 0.20) {
+            evRealista = 0.20;
+        }
+
+        // Se o EV for menor ou igual a 0.02 (2%), ignoramos por ser margem de erro
+        if (evRealista <= 0.02) return;
+
+        const score = (evRealista * 0.6) + (prob * 0.4);
 
         if (score > maiorScore) {
             maiorScore = score;
+            maiorEV = evRealista; // Salva o EV travado
             principalNome = nome;
-            oddFinal = odd || 0;
-            stakeFinal = stake || 0;
+            oddFinal = odd;
+            stakeFinal = stake;
         }
     };
 
-    atualizarSeMelhor("Casa", evCasa, pCasa, mercado.casa, kCasa);
-    atualizarSeMelhor("Fora", evFora, pFora, mercado.fora, kFora);
-    atualizarSeMelhor("Empate", evEmpate, pEmpate, mercado.empate, kEmpate);
-    atualizarSeMelhor("Over 2.5", evOver, pOver, mercado.over, kOver);
-    atualizarSeMelhor("BTTS", evBTTS, pBTTS, mercado.btts, kBTTS);
-    atualizarSeMelhor("Under 2.5", evUnder, pUnder, mercado.under, kUnder);
 
-    // --- OBJETO QUE VAI PARA A TABELA ---
-    // Pega o nome digitado ou coloca a hora se estiver vazio
-    const nomeDoTime = document.getElementById('nomeJogo').value || "Jogo " + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    atualizarMelhor("Casa", evCasa, pCasa, mercado.casa, kCasa);
+    atualizarMelhor("Fora", evFora, pFora, mercado.fora, kFora);
+    atualizarMelhor("Empate", evEmpate, pEmpate, mercado.empate, kEmpate);
+    atualizarMelhor("Over 2.5", evOver, pOver, mercado.over, kOver);
+    atualizarMelhor("BTTS", evBTTS, pBTTS, mercado.btts, kBTTS);
+    atualizarMelhor("Under 2.5", evUnder, (1 - pOver), mercado.under, kUnder);
 
     const dadosParaSalvar = {
-        time: nomeDoTime,
-        ev: Number(maiorEV),
-        odd: Number(oddFinal),
-        stake: Number(stakeFinal),
-        pC: pCasa * 100,
-        pE: pEmpate * 100,
-        pF: pFora * 100,
-        pB: pBTTS * 100,
-        pO: pOver * 100,
+        time: document.getElementById('nomeJogo').value || "Jogo",
+        ev: maiorEV,
+        odd: oddFinal,
+        stake: stakeFinal,
+        pC: pCasa * 100, pE: pEmpate * 100, pF: pFora * 100, pB: pBTTS * 100, pO: pOver * 100,
         expGols: lambdaCasa + lambdaFora,
-        principal: principalNome,
-        lucro: 0,
-        resultado: "Pendente"
+        principal: principalNome
     };
 
+    // CRIAÇÃO DO BOTÃO SEM ERROS
+    const btn = document.createElement('button');
+    btn.innerHTML = "💾 SALVAR NA TABELA DE RELATÓRIO";
+    btn.style = "width:100%; margin-top:15px; padding:12px; background:#1a237e; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;";
+    btn.onclick = () => salvarResultado(dadosParaSalvar);
+    document.getElementById('painelResultado').appendChild(btn);
+}
+// --- FUNÇÃO DE TRAVA RIGOROSA ---
+const filtrarEVDentroDasRegras = (prob, ev) => {
+    // Se a chance for menor que 50%, descarta (Retorna null)
+    if (prob < 50) return null;
+    // Se o EV for negativo ou margem de erro, descarta
+    if (ev <= 0.02) return null;
+    // Se o EV for absurdo, trava em 20%
+    return Math.min(ev, 0.20);
+};
 
-    // Inserindo o botão no painel de resultados
-    document.getElementById('painelResultado').innerHTML += `
-        <button onclick='salvarResultado(${JSON.stringify(dadosParaSalvar)})' 
-                style="width:100%; margin-top:15px; padding:12px; background:#1a237e; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">
-            💾 SALVAR NA TABELA DE RELATÓRIO
-        </button>
-    `;
+const vC = filtrarEVDentroDasRegras(pC, evC);
+const vF = filtrarEVDentroDasRegras(pF, evF);
+const vB = filtrarEVDentroDasRegras(pBTTS, evB);
+const vO = filtrarEVDentroDasRegras(pOver, evO);
+
+// Agora o HTML só recebe o que passou no filtro acima
+if (vC) html += criarCard("Valor em Casa", vC, fairC, kellyC, "#2e7d32");
+if (vF) html += criarCard("Valor em Fora", vF, fairF, kellyF, "#c62828");
+if (vB) html += criarCard("Valor em BTTS", vB, fairB, kellyB, "#1565c0");
+if (vO) html += criarCard("Valor em Over 2.5", vO, fairO, kellyO, "#ef6c00");
+
+
+function salvarResultado(dados) {
+    let hist = JSON.parse(localStorage.getItem('meuHistoricoApostas')) || [];
+    dados.resultado = "Pendente";
+    dados.lucro = 0;
+    hist.unshift(dados);
+    localStorage.setItem('meuHistoricoApostas', JSON.stringify(hist));
+    renderizarTabela();
+    alert("Salvo!");
 }
 
-function exibirResultados(pC, pE, pF, pBTTS, pOver, evC, evB, evO, kellyC, kellyB, kellyO, totalGols) {
+function marcarResultado(index, tipo) {
+    let hist = JSON.parse(localStorage.getItem('meuHistoricoApostas')) || [];
+    let jogo = hist[index];
+    let valorApostado = 100 * (Number(jogo.stake) / 100);
+    if (tipo === 'Green') {
+        jogo.lucro = (Number(jogo.odd) - 1) * valorApostado;
+        jogo.resultado = "Green";
+    } else {
+        jogo.lucro = -valorApostado;
+        jogo.resultado = "Red";
+    }
+    localStorage.setItem('meuHistoricoApostas', JSON.stringify(hist));
+    renderizarTabela();
+}
+
+function validarPlacar(index) {
+    const gC = parseInt(document.getElementById(`resC-${index}`).value);
+    const gF = parseInt(document.getElementById(`resF-${index}`).value);
+    if (isNaN(gC) || isNaN(gF)) return alert("Placar!");
+    let hist = JSON.parse(localStorage.getItem('meuHistoricoApostas')) || [];
+    let jogo = hist[index];
+    let deuGreen = false;
+    const total = gC + gF;
+    const aposta = jogo.principal;
+
+    if (aposta === "Over 2.5" && total > 2.5) deuGreen = true;
+    else if (aposta === "Under 2.5" && total < 2.5) deuGreen = true;
+    else if (aposta === "BTTS" && gC > 0 && gF > 0) deuGreen = true;
+    else if (aposta === "Casa" && gC > gF) deuGreen = true;
+    else if (aposta === "Empate" && gC === gF) deuGreen = true;
+    else if (aposta === "Fora" && gF > gC) deuGreen = true;
+
+    jogo.golsC = gC; jogo.golsF = gF;
+    marcarResultado(index, deuGreen ? 'Green' : 'Red');
+}
+
+function renderizarTabela() {
+    const hist = JSON.parse(localStorage.getItem('meuHistoricoApostas')) || [];
+    const corpo = document.getElementById('corpoTabela');
+    if (!corpo) return;
+    let soma = 0;
+    corpo.innerHTML = hist.map((j, i) => {
+        soma += Number(j.lucro || 0);
+        let bg = j.resultado === "Green" ? "#e8f5e9" : (j.resultado === "Red" ? "#ffebee" : "#fff9c4");
+        return `<tr style="background:${bg}; border-bottom:1px solid #ddd; text-align:center;">
+            <td style="padding:8px;">${j.time}</td>
+            <td>${Number(j.ev).toFixed(2)}</td>
+            <td>${Number(j.odd).toFixed(2)}</td>
+            <td>${Number(j.stake).toFixed(1)}%</td>
+            <td>${Number(j.pC).toFixed(1)}%</td>
+            <td>${Number(j.pE).toFixed(1)}%</td>
+            <td>${Number(j.pF).toFixed(1)}%</td>
+            <td>${Number(j.pB).toFixed(1)}%</td>
+            <td>${Number(j.pO).toFixed(1)}%</td>
+            <td>${Number(j.expGols).toFixed(2)}</td>
+            <td><b>${j.principal}</b></td>
+            <td>
+                <input type="number" id="resC-${i}" style="width:35px;" value="${j.golsC ?? ''}"> x 
+                <input type="number" id="resF-${i}" style="width:35px;" value="${j.golsF ?? ''}">
+                <button onclick="validarPlacar(${i})">OK</button>
+            </td>
+            <td style="color:${j.lucro >= 0 ? 'green' : 'red'}">R$ ${Number(j.lucro).toFixed(2)}</td>
+            <td><button onclick="excluirLinha(${i})">🗑️</button></td>
+        </tr>`;
+    }).join('');
+    document.getElementById('lucroTotal').innerHTML = `Lucro Total: R$ ${soma.toFixed(2)}`;
+    document.getElementById('saldoAtual').innerHTML = `Saldo Atual: R$ ${(100 + soma).toFixed(2)}`;
+}
+
+function excluirLinha(i) {
+    let hist = JSON.parse(localStorage.getItem('meuHistoricoApostas')) || [];
+    hist.splice(i, 1);
+    localStorage.setItem('meuHistoricoApostas', JSON.stringify(hist));
+    renderizarTabela();
+}
+
+function ajustarMediaLiga() {
+    const s = document.getElementById('selectLiga');
+    const i = document.getElementById('mediaLiga');
+    if (s.value === "custom") { i.value = ""; i.focus(); }
+    else if (s.value) { i.value = s.value; }
+}
+
+function preencherExemplo() {
+    document.getElementById('oddCasa').value = "2.05";
+    document.getElementById('oddEmpate').value = "3.40";
+    document.getElementById('oddFora').value = "3.80";
+    document.getElementById('oddOver').value = "1.90";
+    document.getElementById('oddUnder').value = "1.90";
+    document.getElementById('oddBTTS').value = "1.72";
+    document.getElementById('golsMCasa').value = "2,1,1,0,3";
+    document.getElementById('golsSCasa').value = "0,1,1,2,0";
+    document.getElementById('ataqueCasa').value = "1.8";
+    document.getElementById('defesaCasa').value = "1.2";
+    document.getElementById('golsMFora').value = "1,1,2,0,1";
+    document.getElementById('golsSFora').value = "1,2,1,1,3";
+    document.getElementById('ataqueFora').value = "1.4";
+    document.getElementById('defesaFora').value = "1.6";
+    document.getElementById('nomeJogo').value = "Flamengo x Vasco";
+}
+
+function limparCampos() {
+    document.querySelectorAll('input').forEach(i => i.value = "");
+    document.getElementById('resultado').style.display = 'none';
+}
+
+window.onload = renderizarTabela;
+
+// Altere a primeira linha para ficar exatamente assim:
+function exibirResultados(pC, pE, pF, pBTTS, pOver, evC, evB, evO, evF, kellyC, kellyB, kellyO, kellyF, totalGols) {
+
     const painel = document.getElementById('painelResultado');
     document.getElementById('resultado').style.display = 'block';
 
-    const calcularFairOdd = (p) => p ? (100 / p).toFixed(2) : "-";
+    // Agora o JavaScript vai entender o que é pC, pE e pF
+    const calcularFairOdd = (p) => p > 0 ? (100 / p).toFixed(2) : "-";
 
     const fairC = calcularFairOdd(pC);
     const fairE = calcularFairOdd(pE);
@@ -197,31 +317,47 @@ function exibirResultados(pC, pE, pF, pBTTS, pOver, evC, evB, evO, kellyC, kelly
             <span>🚀 Fora: ${pF.toFixed(1)}% <small style="color:#666">(${fairF})</small></span>
         </div>
         <div style="display: flex; justify-content: space-around; margin-bottom: 15px; font-size: 0.85em;">
-            <span style="color: #1565c0;">⚽ BTTS: <b>${pBTTS.toFixed(1)}%</b> <small>(${fairB})</small></span>
-            <span style="color: #e65100;">📈 Over 2.5: <b>${pOver.toFixed(1)}%</b> <small>(${fairO})</small></span>
+            <span style="color: #1565c0;">⚽ BTTS: <b>${pBTTS.toFixed(1)}%</b> <small style="color:#666">(${fairB})</small></span>
+            <span style="color: #e65100;">📈 Over 2.5: <b>${pOver.toFixed(1)}%</b> <small style="color:#666">(${fairO})</small></span>
         </div>
     `;
-
-    // Cards de Valor (Refatorados para serem limpos)
+    // 1. Defina a função de criar card ANTES de usar
     const criarCard = (titulo, ev, fair, stake, cor) => {
-        if (ev <= 0.02) return "";
-        return `<div style="background:${cor}15; padding:12px; border-radius:8px; border:2px solid ${cor}; margin-bottom: 10px;">
-        <b style="color:${cor}; text-transform:uppercase;">🔥 ${titulo} (EV: ${ev.toFixed(2)})</b><br>
-        Odd Justa: ${fair} | Stake: <b>${stake}%</b>
-    </div>`;
+        return `<div style="background:${cor}15; padding:10px; border-radius:8px; border:2px solid ${cor}; margin-bottom: 8px;">
+        <b style="color:${cor}; text-transform:uppercase;">🔥 ${titulo} (EV: ${(ev * 100).toFixed(1)}%)</b><br>
+        Odd Justa: ${fair} | Stake: <b>${stake}%</b></div>`;
     };
 
-    html += criarCard("Valor em Casa", evC, fairC, kellyC, "#2e7d32");
-    html += criarCard("Valor em BTTS", evB, fairB, kellyB, "#1565c0");
-    html += criarCard("Valor em Over 2.5", evO, fairO, kellyO, "#ef6c00");
+    // 2. Função de trava
+    const filtrarEVDentroDasRegras = (prob, ev) => {
+        if (prob < 50) return null;
+        if (ev <= 0.02) return null;
+        return Math.min(ev, 0.20);
+    };
 
-    if (evC <= 0.02 && evB <= 0.02 && evO <= 0.02) {
-        html += `<div style="background:#ffebee; padding:12px; border-radius:8px; text-align:center;">⚠️ Sem valor claro (Margem < 2%).</div>`;
+    // 3. Aplique os filtros (Note que removi as chamadas duplicadas lá de baixo)
+    const vC = filtrarEVDentroDasRegras(pC, evC);
+    const vB = filtrarEVDentroDasRegras(pBTTS, evB);
+    const vO = filtrarEVDentroDasRegras(pOver, evO);
+    const vF = filtrarEVDentroDasRegras(pF, evF); // Ative se tiver evF
+
+    if (vC) html += criarCard("Valor em Casa", vC, fairC, kellyC, "#2e7d32");
+    if (vB) html += criarCard("Valor em BTTS", vB, fairB, kellyB, "#1565c0");
+    if (vO) html += criarCard("Valor em Over 2.5", vO, fairO, kellyO, "#ef6c00");
+    if (vF) html += criarCard("Valor em Fora", vF, fairF, kellyF, "#c62828");
+
+
+    // 4. Mensagem de segurança
+    if (!vC && !vB && !vO) {
+        html += `<div style="background:#fff3e0; color:#e65100; padding:12px; border-radius:8px; text-align:center; border:1px solid #ffb74d;">
+            ⚠️ Sem entradas de alta confiança (>50% prob e valor real).
+        </div>`;
     }
 
     html += `<p style="font-size: 0.8em; margin-top: 10px; color: #666; text-align:center;">Expectativa Total: <b>${totalGols.toFixed(2)} gols</b></p>`;
     painel.innerHTML = html;
 }
+
 // 1. FUNÇÃO PARA SALVAR (Garante que os números entrem limpos)
 function salvarResultado(dados) {
     let historico = JSON.parse(localStorage.getItem('meuHistoricoApostas')) || [];
