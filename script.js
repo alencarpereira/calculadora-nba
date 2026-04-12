@@ -144,13 +144,14 @@ function executarAnalise() {
         principal: principalNome // Aqui ele pegará exatamente o que aparecer no card
     };
 
-    // Localize esta linha e substitua:
+    // Localize a linha da chamada e substitua por esta:
     exibirResultados(
-        pCasa * 100, pEmpate * 100, pFora * 100, pBTTS * 100, pOver * 100,
-        evCasa, evBTTS, evOver, evFora, evUnder, // EVs (incluindo evUnder como evU)
-        kCasa, kBTTS, kOver, kFora, kUnder,      // STAKEs (incluindo kUnder como kellyU)
-        lambdaCasa + lambdaFora
+        pCasa * 100, pEmpate * 100, pFora * 100, pBTTS * 100, pOver * 100, // 1-5
+        evCasa, evBTTS, evOver, evFora, evUnder,                         // 6-10
+        kCasa, kBTTS, kOver, kFora, kUnder,                             // 11-15
+        (lambdaCasa + lambdaFora)                                        // 16 (totalGols)
     );
+
 
 
     // CRIA O BOTÃO (Sincronizado com os dados acima)
@@ -300,71 +301,75 @@ function limparCampos() {
 }
 
 window.onload = renderizarTabela;
-
-// Altere a primeira linha para ficar exatamente assim:
-// Adicione evU e kellyU antes de totalGols
 function exibirResultados(pC, pE, pF, pBTTS, pOver, evC, evB, evO, evF, evU, kellyC, kellyB, kellyO, kellyF, kellyU, totalGols) {
-
     const painel = document.getElementById('painelResultado');
-    document.getElementById('resultado').style.display = 'block';
+    const resultadoDiv = document.getElementById('resultado');
 
-    // Agora o JavaScript vai entender o que é pC, pE e pF
-    const calcularFairOdd = (p) => p > 0 ? (100 / p).toFixed(2) : "-";
+    if (resultadoDiv) resultadoDiv.style.display = 'block';
+
+    const calcularFairOdd = (p) => (p > 0) ? (100 / p).toFixed(2) : "-";
 
     const fairC = calcularFairOdd(pC);
     const fairE = calcularFairOdd(pE);
     const fairF = calcularFairOdd(pF);
     const fairB = calcularFairOdd(pBTTS);
     const fairO = calcularFairOdd(pOver);
+    const fairU = calcularFairOdd(100 - pOver);
 
-    let html = `
-        <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-weight: bold; font-size: 0.9em;">
-            <span>🏠 Casa: ${pC.toFixed(1)}% <small style="color:#666">(${fairC})</small></span>
-            <span>🤝 Empate: ${pE.toFixed(1)}% <small style="color:#666">(${fairE})</small></span>
-            <span>🚀 Fora: ${pF.toFixed(1)}% <small style="color:#666">(${fairF})</small></span>
-        </div>
-        <div style="display: flex; justify-content: space-around; margin-bottom: 15px; font-size: 0.85em;">
-            <span style="color: #1565c0;">⚽ BTTS: <b>${pBTTS.toFixed(1)}%</b> <small style="color:#666">(${fairB})</small></span>
-            <span style="color: #e65100;">📈 Over 2.5: <b>${pOver.toFixed(1)}%</b> <small style="color:#666">(${fairO})</small></span>
-        </div>
-    `;
-    // 1. Defina a função de criar card ANTES de usar
+    // 1. Definições auxiliares
     const criarCard = (titulo, ev, fair, stake, cor) => {
         return `<div style="background:${cor}15; padding:10px; border-radius:8px; border:2px solid ${cor}; margin-bottom: 8px;">
         <b style="color:${cor}; text-transform:uppercase;">🔥 ${titulo} (EV: ${(ev * 100).toFixed(1)}%)</b><br>
         Odd Justa: ${fair} | Stake: <b>${stake}%</b></div>`;
     };
 
-    // 2. Função de trava
     const filtrarEVDentroDasRegras = (prob, ev) => {
         if (prob < 50) return null;
-        if (ev <= 0.02) return null;
+        if (!ev || ev <= 0.02) return null;
         return Math.min(ev, 0.20);
     };
 
-    // No final da função exibirResultados, substitua a parte dos IFs de vC, vB... por esta:
+    // 2. Montagem do HTML inicial
+    let html = `
+        <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-weight: bold; font-size: 0.9em;">
+            <span>🏠 Casa: ${Number(pC).toFixed(1)}% <small style="color:#666">(${fairC})</small></span>
+            <span>🤝 Empate: ${Number(pE).toFixed(1)}% <small style="color:#666">(${fairE})</small></span>
+            <span>🚀 Fora: ${Number(pF).toFixed(1)}% <small style="color:#666">(${fairF})</small></span>
+        </div>
+        <div style="display: flex; justify-content: space-around; margin-bottom: 15px; font-size: 0.85em;">
+            <span style="color: #1565c0;">⚽ BTTS: <b>${Number(pBTTS).toFixed(1)}%</b> <small style="color:#666">(${fairB})</small></span>
+            <span style="color: #e65100;">📈 Over 2.5: <b>${Number(pOver).toFixed(1)}%</b> <small style="color:#666">(${fairO})</small></span>
+        </div>
+    `;
+
+    // 3. Filtros
     const vC = filtrarEVDentroDasRegras(pC, evC);
     const vF = filtrarEVDentroDasRegras(pF, evF);
     const vB = filtrarEVDentroDasRegras(pBTTS, evB);
     const vO = filtrarEVDentroDasRegras(pOver, evO);
-    const vU = filtrarEVDentroDasRegras(100 - pOver, evU); // Under 2.5
+    const vU = filtrarEVDentroDasRegras(100 - pOver, evU);
 
+    // 4. Cards
     if (vC) html += criarCard("Casa", vC, fairC, kellyC, "#2e7d32");
     if (vF) html += criarCard("Fora", vF, fairF, kellyF, "#c62828");
     if (vB) html += criarCard("BTTS", vB, fairB, kellyB, "#1565c0");
     if (vO) html += criarCard("Over 2.5", vO, fairO, kellyO, "#ef6c00");
-    if (vU) html += criarCard("Under 2.5", vU, calcularFairOdd(100 - pOver), kellyU, "#546e7a");
+    if (vU) html += criarCard("Under 2.5", vU, fairU, kellyU, "#546e7a");
 
-    // A CORREÇÃO DO AVISO: Agora checa se NENHUM deles existe
+    // 5. Verificação de vazio
     if (!vC && !vF && !vB && !vO && !vU) {
         html += `<div style="background:#fff3e0; color:#e65100; padding:12px; border-radius:8px; text-align:center; border:1px solid #ffb74d;">
             ⚠️ Sem entradas de alta confiança (>50% prob e valor real).
         </div>`;
     }
 
-    html += `<p style="font-size: 0.8em; margin-top: 10px; color: #666; text-align:center;">Expectativa Total: <b>${totalGols.toFixed(2)} gols</b></p>`;
-    painel.innerHTML = html;
+    // 6. Rodapé (Expectativa de Gols)
+    const golsFormatado = (typeof totalGols === 'number') ? totalGols.toFixed(2) : "0.00";
+    html += `<p style="font-size: 0.8em; margin-top: 10px; color: #666; text-align:center;">Expectativa Total: <b>${golsFormatado} gols</b></p>`;
+
+    if (painel) painel.innerHTML = html;
 }
+
 
 // 1. FUNÇÃO PARA SALVAR (Garante que os números entrem limpos)
 function salvarResultado(dados) {
