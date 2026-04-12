@@ -116,53 +116,37 @@ function executarAnalise() {
         kCasa, kBTTS, kOver,
         lambdaCasa + lambdaFora
     );
+    const pesoEV = 0.6;
+    const pesoProb = 0.4;
 
-    // --- LÓGICA PARA DEFINIR APOSTA PRINCIPAL ---
-    // --- LÓGICA PARA DEFINIR APOSTA PRINCIPAL (VERSÃO SEGURA E EQUILIBRADA) ---
+    const calcularScore = (ev, prob) => {
+        return (ev * pesoEV) + (prob * pesoProb);
+    };
+
+    let maiorScore = -Infinity;
     let principalNome = "Sem Valor";
-    let maiorEV = 0.05; // Só aceita sugestões com no mínimo 5% de margem de lucro
     let oddFinal = 0;
     let stakeFinal = 0;
 
-    // Função auxiliar para atualizar a escolha se o EV for o maior encontrado até agora
-    const atualizarSeMelhor = (nome, ev, odd, stake) => {
-        if (ev > maiorEV) {
-            maiorEV = ev;
+    const atualizarSeMelhor = (nome, ev, prob, odd, stake) => {
+        if (!isFinite(ev) || !isFinite(prob)) return;
+
+        const score = calcularScore(ev, prob);
+
+        if (score > maiorScore) {
+            maiorScore = score;
             principalNome = nome;
-            oddFinal = odd;
-            stakeFinal = stake;
+            oddFinal = odd || 0;
+            stakeFinal = stake || 0;
         }
     };
 
-    // 1. CASA: Só aceita se tiver mais de 40% de chance
-    if (pCasa > 0.40) {
-        atualizarSeMelhor("Casa", evCasa, mercado.casa, kCasa);
-    }
-
-    // 2. FORA: Subi a trava para 45% (Para evitar as zebras que te deram Red)
-    if (pFora > 0.45) {
-        atualizarSeMelhor("Fora", evFora, mercado.fora, calcularKelly(pFora, mercado.fora));
-    }
-
-    // 3. EMPATE: Muito arriscado, trava de 35%
-    if (pEmpate > 0.35) {
-        atualizarSeMelhor("Empate", evEmpate, mercado.empate, calcularKelly(pEmpate, mercado.empate));
-    }
-
-    // 4. MERCADOS DE GOLS: São mais estáveis, aceitam 45% de chance
-    if (pOver > 0.45) {
-        atualizarSeMelhor("Over 2.5", evOver, mercado.over, kOver);
-    }
-
-    if (pBTTS > 0.45) {
-        atualizarSeMelhor("BTTS", evBTTS, mercado.btts, kBTTS);
-    }
-
-    if ((1 - pOver) > 0.45) { // Under 2.5
-        atualizarSeMelhor("Under 2.5", evUnder, mercado.under, kUnder);
-    }
-
-
+    atualizarSeMelhor("Casa", evCasa, pCasa, mercado.casa, kCasa);
+    atualizarSeMelhor("Fora", evFora, pFora, mercado.fora, kFora);
+    atualizarSeMelhor("Empate", evEmpate, pEmpate, mercado.empate, kEmpate);
+    atualizarSeMelhor("Over 2.5", evOver, pOver, mercado.over, kOver);
+    atualizarSeMelhor("BTTS", evBTTS, pBTTS, mercado.btts, kBTTS);
+    atualizarSeMelhor("Under 2.5", evUnder, pUnder, mercado.under, kUnder);
 
     // --- OBJETO QUE VAI PARA A TABELA ---
     // Pega o nome digitado ou coloca a hora se estiver vazio
@@ -475,9 +459,6 @@ function ajustarMediaLiga() {
 
     }
 }
-
-
-
 
 // Função para preencher com um cenário de exemplo (ex: Flamengo vs Palmeiras)
 function preencherExemplo() {
